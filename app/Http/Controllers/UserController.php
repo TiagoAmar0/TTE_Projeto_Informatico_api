@@ -20,7 +20,7 @@ class UserController extends Controller
     public function me(): JsonResponse
     {
         return response()->json([
-            Auth::user()
+            'data' => Auth::user()
         ]);
     }
 
@@ -32,24 +32,21 @@ class UserController extends Controller
      */
     public function login(Request $request): JsonResponse
     {
-        $request->validate([
+        $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required|string'
         ]);
 
-        if(!Auth::attempt(['email' => $request->email, 'password' => $request->password]))
-            return response()->json([
-                'status' => 'error',
-                'message' => 'The credentials are incorrect.'
-            ], 401);
+        if (!Auth::attempt($credentials)) {
+            return response()->json(['message' => 'Credenciais erradas'], 401);
+        }
 
-        $user = Auth::user();
+        // Create a new token for the user
+        $user = $request->user();
+        $token = $user->createToken('token')->plainTextToken;
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User logged in.',
-            'token' => $user->createToken('api')->plainTextToken
-        ]);
+        // Return the token as a response
+        return response()->json(['token' => $token]);
     }
 
     public function store(Request $request){
@@ -75,5 +72,9 @@ class UserController extends Controller
 
     public function logout(){
         Auth::user()->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Sessão terminada'
+        ]);
     }
 }

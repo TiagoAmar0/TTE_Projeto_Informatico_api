@@ -32,6 +32,6 @@ class User extends Authenticatable
 
     public function sector(): BelongsTo
     {
-        return $this->belongsTo(Sector::class);
+        return $this->belongsTo(Service::class);
     }
 }
