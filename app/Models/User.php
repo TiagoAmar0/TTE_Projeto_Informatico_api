@@ -18,7 +18,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'sector_id'
+        'service_id',
+        'type'
     ];
 
     protected $hidden = [
@@ -30,7 +31,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
-    public function sector(): BelongsTo
+    public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
     }

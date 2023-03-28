@@ -38,6 +38,11 @@ Route::middleware('auth:sanctum')->group(function(){
 
    Route::group(['prefix' => 'services'], function(){
        Route::get('', [ServiceController::class, 'index']);
+
+       Route::group(['prefix' => '{service:id}'], function(){
+           Route::get('', [ServiceController::class, 'show']);
+           Route::delete('', [ServiceController::class, 'destroy']);
+       });
    });
 
    Route::group(['prefix' => 'roles'], function(){
