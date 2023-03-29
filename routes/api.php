@@ -42,6 +42,8 @@ Route::middleware('auth:sanctum')->group(function(){
        Route::group(['prefix' => '{service:id}'], function(){
            Route::get('', [ServiceController::class, 'show']);
            Route::delete('', [ServiceController::class, 'destroy']);
+           Route::patch('{user:id}', [ServiceController::class, 'associateUser']);
+           Route::delete('{user:id}', [ServiceController::class, 'disassociateUser']);
        });
    });
 

@@ -21,16 +21,25 @@ class UserSeeder extends Seeder
             'name' => 'admin',
             'email' => 'admin@tte.pt',
             'password' => Hash::make('password'),
-            'service_id' => Service::first()->id,
+            'service_id' => null,
             'type' => 'admin'
         ]);
+
+        $first_service = Service::first()->id;
 
         for ($i = 0; $i < 100; $i++) {
             if($i < 5){
                 $type = 'admin';
+                $service = null;
             } elseif ($i < 15){
                 $type = 'lead-nurse';
+                $service = null;
             } else {
+                if($i < 25){
+                    $service = $first_service;
+                } else {
+                    $service = null;
+                }
                 $type = 'nurse';
             }
 
@@ -38,7 +47,7 @@ class UserSeeder extends Seeder
                 'name' => $faker->name,
                 'email' => $faker->unique()->safeEmail,
                 'password' => Hash::make('password'),
-                'service_id' => Service::first()->id,
+                'service_id' => $service,
                 'type' => $type
             ]);
         }
