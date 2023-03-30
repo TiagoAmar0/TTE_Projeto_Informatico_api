@@ -20,7 +20,12 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'service' => $this->service ? $this->service->name : null,
             'service_id' => $this->service ? $this->service->id : null,
-            'type' => $this->type
+            'type' => $this->type,
+            'type_normalized' => match ($this->type) {
+                'admin' => 'Administrador',
+                'lead-nurse' => 'Enfermeiro Chefe',
+                'nurse' => 'Enfermeiro'
+            }
         ];
     }
 }

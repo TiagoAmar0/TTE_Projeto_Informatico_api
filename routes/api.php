@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ServiceController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,14 +20,14 @@ use App\Http\Controllers\UserController;
 /**
  * Guest routes
  */
-Route::post('login', [UserController::class, 'login']);
+Route::post('login', [AuthController::class, 'login']);
 
 /**
  * Routes protected by authentication
  */
 Route::middleware('auth:sanctum')->group(function(){
-    Route::get('me', [UserController::class, 'me']);
-    Route::delete('logout', [UserController::class, 'logout']);
+    Route::get('me', [AuthController::class, 'me']);
+    Route::delete('logout', [AuthController::class, 'logout']);
 
     /**
      * Users
@@ -34,6 +35,12 @@ Route::middleware('auth:sanctum')->group(function(){
    Route::group(['prefix' => 'users'], function(){
       Route::get('', [UserController::class, 'index']);
       Route::post('', [UserController::class, 'store']);
+
+      Route::group(['prefix' => '{user:id}'], function(){
+         Route::get('', [UserController::class, 'show']);
+         Route::put('', [UserController::class, 'update']);
+         Route::delete('', [UserController::class, 'destroy']);
+      });
    });
 
    Route::group(['prefix' => 'services'], function(){
@@ -49,9 +56,5 @@ Route::middleware('auth:sanctum')->group(function(){
                Route::delete('{user}', [ServiceController::class, 'disassociateUser']);
            });
        });
-   });
-
-   Route::group(['prefix' => 'roles'], function(){
-      Route::get('', [RoleController::class, 'index']);
    });
 });

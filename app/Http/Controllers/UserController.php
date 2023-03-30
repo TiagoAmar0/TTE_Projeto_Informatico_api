@@ -18,44 +18,11 @@ class UserController extends Controller
         ]);
     }
 
-    public function me(): JsonResponse
-    {
-        return response()->json([
-            'data' => new UserResource(Auth::user())
-        ]);
-    }
-
-
-    /**
-     * Logs user in
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function login(Request $request): JsonResponse
-    {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string'
-        ]);
-
-        if (!Auth::attempt($credentials)) {
-            return response()->json(['message' => 'Credenciais erradas'], 401);
-        }
-
-        // Create a new token for the user
-        $user = $request->user();
-        $token = $user->createToken('token')->plainTextToken;
-
-        // Return the token as a response
-        return response()->json(['token' => $token]);
-    }
-
     public function store(Request $request){
         $request->validate([
             'name' => 'required|string',
             'email' => 'required|email|unique:App\Models\User,email',
             'password' => 'required|string',
-            'service_id' => 'required|exists:App\Models\Service,id',
             'type' => ['required','string', Rule::in(['nurse', 'lead-nurse', 'admin'])]
         ]);
 
@@ -64,7 +31,8 @@ class UserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
-            'service_id' => $request->service_id,
+            'service_id' => null,
+            'type' => $request->type
         ]);
 
         return response()->json([
@@ -72,11 +40,42 @@ class UserController extends Controller
         ]);
     }
 
-    public function logout(){
-        Auth::user()->tokens()->delete();
-
+    public function show(User $user){
         return response()->json([
-            'message' => 'Sessão terminada'
+            'data' => new UserResource($user)
         ]);
     }
+
+    public function update(User $user, Request $request){
+        $request->validate([
+            'name' => 'required|string',
+            'email' => ['required', 'email', 'unique:App\Models\User,email,'.$user->id],
+            'type' => ['required','string', Rule::in(['nurse', 'lead-nurse', 'admin'])]
+        ]);
+
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->type = $request->type;
+        $user->save();
+
+        return response()->json([
+            'data' => new UserResource($user)
+        ]);
+    }
+
+    public function destroy(User $user){
+        if($user->service){
+            return response()->json([
+                'message' => 'Não é possível apagar um enfermeiro com serviço associado'
+            ], 422);
+        }
+
+        $user->delete();
+
+        return response()->json([
+            'data' => new UserResource($user)
+        ]);
+    }
+
+
 }
