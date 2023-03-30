@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\ServiceResource;
+use App\Http\Resources\UserResource;
 use App\Models\Service;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ServiceController extends Controller
@@ -21,6 +21,33 @@ class ServiceController extends Controller
     }
 
     public function show(Service $service){
+        return response()->json([
+            'data' => new ServiceResource($service)
+        ]);
+    }
+
+    public function store(Request $request){
+        $request->validate([
+           'name' => ['required', 'unique:services']
+        ]);
+
+        $service = new Service();
+        $service->name = $request->name;
+        $service->save();
+
+        return response()->json([
+           'data' => new ServiceResource($service)
+        ]);
+    }
+
+    public function update(Service $service, Request $request){
+        $request->validate([
+            'name' => ['required', 'unique:services,name,'.$service->id]
+        ]);
+
+        $service->name = $request->name;
+        $service->save();
+
         return response()->json([
             'data' => new ServiceResource($service)
         ]);
@@ -55,7 +82,11 @@ class ServiceController extends Controller
         $user->service()->associate($service)->save();
 
         return response()->json([
-           'message' => 'O enfermeiro foi associado com sucesso'
+            'message' => 'O enfermeiro foi associado com sucesso',
+            'data' => [
+                'user' => new UserResource($user),
+                'service' => new ServiceResource($service)
+            ]
         ]);
     }
 
@@ -63,7 +94,11 @@ class ServiceController extends Controller
         $user->service()->disassociate()->save();
 
         return response()->json([
-           'message' => 'O enfermeiro foi desassociado do serviço'
+           'message' => 'O enfermeiro foi desassociado do serviço',
+            'data' => [
+                'user' => new UserResource($user),
+                'service' => new ServiceResource($service)
+            ]
         ]);
     }
 }

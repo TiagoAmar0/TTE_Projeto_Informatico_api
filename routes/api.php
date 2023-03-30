@@ -38,17 +38,20 @@ Route::middleware('auth:sanctum')->group(function(){
 
    Route::group(['prefix' => 'services'], function(){
        Route::get('', [ServiceController::class, 'index']);
+       Route::post('', [ServiceController::class, 'store']);
 
        Route::group(['prefix' => '{service:id}'], function(){
            Route::get('', [ServiceController::class, 'show']);
+           Route::put('', [ServiceController::class, 'update']);
            Route::delete('', [ServiceController::class, 'destroy']);
-           Route::patch('{user:id}', [ServiceController::class, 'associateUser']);
-           Route::delete('{user:id}', [ServiceController::class, 'disassociateUser']);
+           Route::group(['prefix' => 'users'], function(){
+               Route::put('{user}', [ServiceController::class, 'associateUser']);
+               Route::delete('{user}', [ServiceController::class, 'disassociateUser']);
+           });
        });
    });
 
    Route::group(['prefix' => 'roles'], function(){
       Route::get('', [RoleController::class, 'index']);
    });
-
 });
