@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,14 +14,14 @@ class UserController extends Controller
     public function index(): JsonResponse
     {
         return response()->json([
-           'data' => User::all()
+           'data' => UserResource::collection(User::all())
         ]);
     }
 
     public function me(): JsonResponse
     {
         return response()->json([
-            'data' => Auth::user()
+            'data' => new UserResource(Auth::user())
         ]);
     }
 
@@ -54,8 +55,8 @@ class UserController extends Controller
             'name' => 'required|string',
             'email' => 'required|email|unique:App\Models\User,email',
             'password' => 'required|string',
-            'sector_id' => 'required|exists:App\Models\Sector,id',
-            'role' => ['required','string', Rule::in(['nurse', 'lead-nurse', 'super-admin'])]
+            'service_id' => 'required|exists:App\Models\Service,id',
+            'type' => ['required','string', Rule::in(['nurse', 'lead-nurse', 'admin'])]
         ]);
 
         // Create user
@@ -63,11 +64,12 @@ class UserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
-            'sector_id' => $request->sector_id,
+            'service_id' => $request->service_id,
         ]);
 
-        // Add role
-//        $user->assignRole($request->role);
+        return response()->json([
+            'data' => new UserResource($user)
+        ]);
     }
 
     public function logout(){
