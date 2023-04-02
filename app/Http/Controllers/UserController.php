@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\UserResource;
+use App\Mail\SendCredentialsMail;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
@@ -22,18 +25,22 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string',
             'email' => 'required|email|unique:App\Models\User,email',
-            'password' => 'required|string',
             'type' => ['required','string', Rule::in(['nurse', 'lead-nurse', 'admin'])]
         ]);
+
+        $random_password = Str::random();
 
         // Create user
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => bcrypt($request->password),
+            'password' => bcrypt($random_password),
             'service_id' => null,
             'type' => $request->type
         ]);
+
+        // Send email to user containing credentials
+        Mail::to($user->email)->send(new SendCredentialsMail($user->email, $random_password));
 
         return response()->json([
             'data' => new UserResource($user)
