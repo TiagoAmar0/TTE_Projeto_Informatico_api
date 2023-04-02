@@ -14,6 +14,8 @@
 
     <br>
 
+    <a href="{{ env('APP_FRONTEND_URL') }}">Entrar na plataforma</a>
+
     <p>Aconselhamos a atualizar a sua senha assim que iniciar a sessão pela primeira vez na plataforma.</p>
 </body>
 </html>
