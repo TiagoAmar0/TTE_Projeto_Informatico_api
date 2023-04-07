@@ -14,13 +14,14 @@ header('Access-Control-Allow-Headers:  Content-Type, X-Auth-Token, Origin, Autho
 /**
  * Controllers
  */
-use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 
 /**
  * Guest routes
  */
 Route::post('login', [AuthController::class, 'login']);
+Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
+Route::put('reset-password', [AuthController::class, 'resetPassword']);
 
 /**
  * Routes protected by authentication
@@ -28,6 +29,7 @@ Route::post('login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function(){
     Route::get('me', [AuthController::class, 'me']);
     Route::delete('logout', [AuthController::class, 'logout']);
+    Route::put('password', [AuthController::class, 'changePassword']);
 
     /**
      * Users

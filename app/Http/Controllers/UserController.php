@@ -7,7 +7,7 @@ use App\Mail\SendCredentialsMail;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -28,19 +28,24 @@ class UserController extends Controller
             'type' => ['required','string', Rule::in(['nurse', 'lead-nurse', 'admin'])]
         ]);
 
-        $random_password = Str::random();
-
         // Create user
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => bcrypt($random_password),
+            'password' => bcrypt(Str::random()),
             'service_id' => null,
             'type' => $request->type
         ]);
 
-        // Send email to user containing credentials
-        Mail::to($user->email)->send(new SendCredentialsMail($user->email, $random_password));
+        $token = Str::random(64);
+        DB::table('password_reset_tokens')->insert([
+            'email' => $request->email,
+            'token' => $token,
+            'created_at' => now()
+        ]);
+
+        $reset_url = config('app.frontend_url') . 'reset-password?token=' . $token;
+        Mail::to($request->email)->send(new SendCredentialsMail($reset_url, "Clique na ligação abaixo para aceder à plataforma"));
 
         return response()->json([
             'data' => new UserResource($user)

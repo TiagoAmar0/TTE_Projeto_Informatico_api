@@ -8,7 +8,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class SendCredentialsMail extends Mailable
+class SendResetPasswordEmail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -26,7 +26,7 @@ class SendCredentialsMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Plataforma TTE: Acesso à Plataforma',
+            subject: 'Plataforma TTE: Recuperar Senha',
         );
     }
 
