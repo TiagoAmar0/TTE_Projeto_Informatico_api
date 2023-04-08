@@ -26,7 +26,7 @@ Route::put('reset-password', [AuthController::class, 'resetPassword']);
 /**
  * Routes protected by authentication
  */
-Route::middleware('auth:sanctum')->group(function(){
+//Route::middleware('auth:sanctum')->group(function(){
     Route::get('me', [AuthController::class, 'me']);
     Route::delete('logout', [AuthController::class, 'logout']);
     Route::put('password', [AuthController::class, 'changePassword']);
@@ -59,4 +59,4 @@ Route::middleware('auth:sanctum')->group(function(){
            });
        });
    });
-});
+//});
