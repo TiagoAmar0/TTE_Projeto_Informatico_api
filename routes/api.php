@@ -5,12 +5,6 @@ use App\Http\Controllers\ServiceController;
 use Illuminate\Support\Facades\Route;
 
 
-header("Cache-Control: no-cache, must-revalidate");
-header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
-header('Access-Control-Allow-Origin:  *');
-header('Access-Control-Allow-Methods:  POST, GET, OPTIONS, PUT, DELETE');
-header('Access-Control-Allow-Headers:  Content-Type, X-Auth-Token, Origin, Authorization');
-
 /**
  * Controllers
  */
@@ -26,7 +20,7 @@ Route::put('reset-password', [AuthController::class, 'resetPassword']);
 /**
  * Routes protected by authentication
  */
-Route::middleware('auth:sanctum')->group(function(){
+Route::middleware('auth:api')->group(function(){
     Route::get('me', [AuthController::class, 'me']);
     Route::delete('logout', [AuthController::class, 'logout']);
     Route::put('password', [AuthController::class, 'changePassword']);

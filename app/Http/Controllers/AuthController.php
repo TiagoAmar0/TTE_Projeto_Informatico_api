@@ -29,17 +29,17 @@ class AuthController extends Controller
      */
     public function login(Request $request): JsonResponse
     {
-        $credentials = $request->validate([
+        $request->validate([
             'email' => 'required|email',
             'password' => 'required|string'
         ]);
 
-        if (!Auth::attempt($credentials)) {
+        $user = User::where('email', $request->email)->first();
+        if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Credenciais erradas'], 401);
         }
 
         // Create a new token for the user
-        $user = $request->user();
         $token = $user->createToken('token')->plainTextToken;
 
         // Return the token as a response
