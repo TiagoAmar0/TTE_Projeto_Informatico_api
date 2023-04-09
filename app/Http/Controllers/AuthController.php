@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -22,28 +23,31 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Logs user in
-     * @param Request $request
-     * @return JsonResponse
-     */
+    private function passportAuthenticationData($username, $password){
+        return [
+            'grant_type' => 'password',
+            'client_id' => config('auth.CLIENT_ID'),
+            'client_secret' => config('auth.CLIENT_SECRET'),
+            'username' => $username,
+            'password' => $password,
+            'scope' => ''
+        ];
+    }
+
+
     public function login(Request $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string'
-        ]);
-
-        $user = User::where('email', $request->email)->first();
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Credenciais erradas'], 401);
+        try {
+            request()->request->add($this->passportAuthenticationData($request->email, $request->password));
+            $request = Request::create(config('auth.PASSPORT_SERVER_URL') . '/oauth/token', 'POST');
+            $response = Route::dispatch($request);
+            $errorCode = $response->getStatusCode();
+            $auth_server_response = json_decode((string) $response->content(), true);
+            return response()->json($auth_server_response, $errorCode);
         }
-
-        // Create a new token for the user
-        $token = $user->createToken('token')->plainTextToken;
-
-        // Return the token as a response
-        return response()->json(['token' => $token]);
+        catch (\Exception $e) {
+            return response()->json('Authentication has failed!', 401);
+        }
     }
 
     public function logout(){
