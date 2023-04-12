@@ -2,7 +2,8 @@
 
 namespace App\Providers;
 
-// use Illuminate\Support\Facades\Gate;
+use App\Http\Enums\UserType;
+use App\Policies\ServicePolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -24,7 +25,11 @@ class AuthServiceProvider extends ServiceProvider
     {
         // Bypass permission check if user is super admin
         Gate::before(function($user, $ability){
-           return $user->type === 'admin' ? true : null;
+           return $user->type === UserType::ADMIN->value ? true : null;
+        });
+
+        Gate::define('is-service-lead', function($user, $service){
+            return $user->type === UserType::ADMIN->value || ($user->type === UserType::LEAD->value && $user->service->id === $service->id);
         });
     }
 }

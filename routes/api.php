@@ -37,19 +37,19 @@ Route::middleware('auth:api')->group(function(){
          Route::put('', [UserController::class, 'update']);
          Route::delete('', [UserController::class, 'destroy']);
       });
-   });
+   })->middleware('auth.admin');
 
    Route::group(['prefix' => 'services'], function(){
-       Route::get('', [ServiceController::class, 'index']);
-       Route::post('', [ServiceController::class, 'store']);
+       Route::get('', [ServiceController::class, 'index'])->middleware('auth.admin');
+       Route::post('', [ServiceController::class, 'store'])->middleware('auth.admin');
 
        Route::group(['prefix' => '{service:id}'], function(){
-           Route::get('', [ServiceController::class, 'show']);
-           Route::put('', [ServiceController::class, 'update']);
-           Route::delete('', [ServiceController::class, 'destroy']);
+           Route::get('', [ServiceController::class, 'show'])->middleware('can:is-service-lead,service');
+           Route::put('', [ServiceController::class, 'update'])->middleware('auth.admin');
+           Route::delete('', [ServiceController::class, 'destroy'])->middleware('auth.admin');
            Route::group(['prefix' => 'users'], function(){
-               Route::put('{user}', [ServiceController::class, 'associateUser']);
-               Route::delete('{user}', [ServiceController::class, 'disassociateUser']);
+               Route::put('{user}', [ServiceController::class, 'associateUser'])->middleware('can:is-service-lead,service');
+               Route::delete('{user}', [ServiceController::class, 'disassociateUser'])->middleware('can:is-service-lead,service');
            });
        });
    });
