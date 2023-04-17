@@ -18,4 +18,8 @@ class Service extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function shifts(): HasMany {
+        return $this->hasMany(Shift::class);
+    }
 }

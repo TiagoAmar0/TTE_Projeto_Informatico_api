@@ -17,6 +17,7 @@ class ServiceResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'shifts' => $this->shifts,
             'users' => UserResource::collection(
                 $this->users()
                 ->orderBy('name', 'ASC')

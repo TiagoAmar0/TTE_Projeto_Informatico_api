@@ -28,11 +28,17 @@ class ServiceController extends Controller
 
     public function store(Request $request){
         $request->validate([
-           'name' => ['required', 'unique:services']
+            'name' => ['required', 'unique:services'],
+            'nurses_qty_first_shift' => ['required', 'min:1', 'numeric'],
+            'nurses_qty_second_shift' => ['required', 'min:1', 'numeric'],
+            'nurses_qty_third_shift' => ['required', 'min:1', 'numeric'],
         ]);
 
         $service = new Service();
         $service->name = $request->name;
+        $this->nurses_qty_first_shift = $request->nurses_qty_first_shift;
+        $this->nurses_qty_second_shift = $request->nurses_qty_second_shift;
+        $this->nurses_qty_third_shift = $request->nurses_qty_third_shift;
         $service->save();
 
         return response()->json([
@@ -42,10 +48,16 @@ class ServiceController extends Controller
 
     public function update(Service $service, Request $request){
         $request->validate([
-            'name' => ['required', 'unique:services,name,'.$service->id]
+            'name' => ['required', 'unique:services,name,'.$service->id],
+            'nurses_qty_first_shift' => ['required', 'min:1', 'numeric'],
+            'nurses_qty_second_shift' => ['required', 'min:1', 'numeric'],
+            'nurses_qty_third_shift' => ['required', 'min:1', 'numeric'],
         ]);
 
         $service->name = $request->name;
+        $this->nurses_qty_first_shift = $request->nurses_qty_first_shift;
+        $this->nurses_qty_second_shift = $request->nurses_qty_second_shift;
+        $this->nurses_qty_third_shift = $request->nurses_qty_third_shift;
         $service->save();
 
         return response()->json([
@@ -66,7 +78,7 @@ class ServiceController extends Controller
         ]);
     }
 
-    public function associateUser(Service $service, User $user){
+    public function associateUserToService(Service $service, User $user){
         if($user->type == 'admin'){
             return response()->json([
                'message' => 'Um administrador não pode ser associado a um serviço'
@@ -90,7 +102,7 @@ class ServiceController extends Controller
         ]);
     }
 
-    public function disassociateUser(Service $service, User $user){
+    public function disassociateUserToService(Service $service, User $user){
         $user->service()->disassociate()->save();
 
         return response()->json([

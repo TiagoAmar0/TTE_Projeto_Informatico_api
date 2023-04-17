@@ -33,4 +33,8 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Service::class);
     }
+
+    public function shifts(){
+        return $this->belongsToMany(Shift::class);
+    }
 }
