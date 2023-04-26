@@ -15,6 +15,7 @@ return new class extends Migration
             $table->increments('id');
             $table->integer('user_id');
             $table->integer('shift_id');
+            $table->foreignIdFor(\App\Models\Schedule::class);
             $table->date('date');
         });
     }

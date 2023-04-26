@@ -16,10 +16,14 @@ class Service extends Model
 
     public function users(): HasMany
     {
-        return $this->hasMany(User::class);
+        return $this->hasMany(User::class)->orderBy('name');;
     }
 
     public function shifts(): HasMany {
         return $this->hasMany(Shift::class);
+    }
+
+    public function schedules(): HasMany {
+        return $this->hasMany(Schedule::class);
     }
 }

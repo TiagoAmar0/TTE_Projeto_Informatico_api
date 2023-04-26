@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
@@ -34,7 +36,13 @@ class User extends Authenticatable
         return $this->belongsTo(Service::class);
     }
 
-    public function shifts(){
+    public function shifts(): BelongsToMany
+    {
         return $this->belongsToMany(Shift::class);
+    }
+
+    public function shiftUsers(): HasMany
+    {
+        return $this->hasMany(ShiftUser::class);
     }
 }

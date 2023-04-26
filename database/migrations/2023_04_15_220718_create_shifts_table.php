@@ -15,8 +15,11 @@ return new class extends Migration
         Schema::create('shifts', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(Service::class);
+            $table->string('name');
             $table->time('start');
             $table->time('end');
+            $table->integer('minutes');
+            $table->integer('nurses_qty');
             $table->timestamps();
         });
     }
