@@ -18,7 +18,7 @@ class ShiftUserResource extends JsonResource
             'id' => $this->id,
             'shift_id' => $this->shift_id,
             'user_id' => $this->user_id,
-            'date' => date('m/d', strtotime($this->date)),
+            'date' => date('d/m/Y', strtotime($this->date)),
             'user' => new UserResource($this->whenLoaded('user')),
             'shift' => new ShiftResource($this->whenLoaded('shift')),
         ];

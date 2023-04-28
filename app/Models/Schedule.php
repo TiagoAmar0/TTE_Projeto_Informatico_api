@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Schedule extends Model
 {
     protected $fillable = [
-        'start_date',
-        'end_date',
+        'start',
+        'end',
         'service_id',
         'draft',
     ];
