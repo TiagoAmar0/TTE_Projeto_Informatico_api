@@ -149,7 +149,7 @@ class ScheduleController extends Controller
         ]);
 
         if (!$request->draft) {
-            $this->verifyIfPublishedScheduleExists($request);
+            $this->verifyIfPublishedScheduleExists($request, $service);
         }
 
         $this->verifyIfRequestDatesAreUnique($request);
@@ -157,8 +157,9 @@ class ScheduleController extends Controller
         $this->verifyIfUsersAreValid($request, $service);
     }
 
-    private function verifyIfPublishedScheduleExists(Request $request){
+    private function verifyIfPublishedScheduleExists(Request $request, Service $service){
         $exists = Schedule::query()
+            ->where('service_id', $service->id)
             ->whereBetween('start', [$request->date_range[0], $request->date_range[1]])
             ->orWhereBetween('end', [$request->date_range[0], $request->date_range[1]])
             ->exists();
@@ -232,7 +233,8 @@ class ScheduleController extends Controller
     {
         $schedule->load([
             'userShifts',
-            'service'
+            'shifts',
+            'users',
         ]);
         return new ScheduleResource($schedule);
     }
@@ -254,7 +256,8 @@ class ScheduleController extends Controller
         // Verificar se já existe um horário no intervalo de datas, caso seja publicado
         if (!$request->draft) {
             $exists = Schedule::query()
-                ->where('id', '!=', $schedule->id)
+                ->whereNot('id', $schedule->id)
+                ->where('service_id', $service->id)
                 ->where(function($query) use ($request){
                     $query->whereBetween('start', [$request->date_range[0], $request->date_range[1]]);
                     $query->orWhereBetween('end', [$request->date_range[0], $request->date_range[1]]);
