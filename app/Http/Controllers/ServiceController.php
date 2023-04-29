@@ -28,7 +28,7 @@ class ServiceController extends Controller
 
     public function store(Request $request){
         $request->validate([
-           'name' => ['required', 'unique:services']
+            'name' => ['required', 'unique:services'],
         ]);
 
         $service = new Service();
@@ -42,7 +42,7 @@ class ServiceController extends Controller
 
     public function update(Service $service, Request $request){
         $request->validate([
-            'name' => ['required', 'unique:services,name,'.$service->id]
+            'name' => ['required', 'unique:services,name,'.$service->id],
         ]);
 
         $service->name = $request->name;
@@ -66,7 +66,7 @@ class ServiceController extends Controller
         ]);
     }
 
-    public function associateUser(Service $service, User $user){
+    public function associateUserToService(Service $service, User $user){
         if($user->type == 'admin'){
             return response()->json([
                'message' => 'Um administrador não pode ser associado a um serviço'
@@ -90,7 +90,7 @@ class ServiceController extends Controller
         ]);
     }
 
-    public function disassociateUser(Service $service, User $user){
+    public function disassociateUserToService(Service $service, User $user){
         $user->service()->disassociate()->save();
 
         return response()->json([

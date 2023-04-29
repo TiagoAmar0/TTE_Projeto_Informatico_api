@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class ServiceResource extends JsonResource
+class ShiftUserResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,13 +16,11 @@ class ServiceResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
-            'shifts' => ShiftResource::collection($this->shifts),
-            'users' => UserResource::collection(
-                $this->users()
-                ->orderBy('name', 'ASC')
-                ->get()
-            )
+            'shift_id' => $this->shift_id,
+            'user_id' => $this->user_id,
+            'date' => date('d/m/Y', strtotime($this->date)),
+            'user' => new UserResource($this->whenLoaded('user')),
+            'shift' => new ShiftResource($this->whenLoaded('shift')),
         ];
     }
 }

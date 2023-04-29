@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\ShiftController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -48,9 +50,32 @@ Route::middleware('auth:api')->group(function(){
            Route::put('', [ServiceController::class, 'update'])->middleware('auth.admin');
            Route::delete('', [ServiceController::class, 'destroy'])->middleware('auth.admin');
            Route::group(['prefix' => 'users'], function(){
-               Route::put('{user}', [ServiceController::class, 'associateUser'])->middleware('can:is-service-lead,service');
-               Route::delete('{user}', [ServiceController::class, 'disassociateUser'])->middleware('can:is-service-lead,service');
+               Route::put('{user}', [ServiceController::class, 'associateUserToService'])->middleware('can:is-service-lead,service');
+               Route::delete('{user}', [ServiceController::class, 'disassociateUserToService'])->middleware('can:is-service-lead,service');
+           });
+
+           Route::group(['prefix' => 'schedules'], function(){
+              Route::get('', [ScheduleController::class, 'index']);
+              Route::post('', [ScheduleController::class, 'store']);
+//                  ->middleware('can:is-service-lead,service');
+
+               Route::group(['prefix' => '{schedule:id}'], function(){
+                   Route::get('', [ScheduleController::class, 'show']);
+                   Route::delete('', [ScheduleController::class, 'destroy']);
+                   Route::put('', [ScheduleController::class, 'update']);
+               });
            });
        });
+   });
+
+   Route::group(['prefix' => 'shifts'], function(){
+      Route::group(['prefix' => '{shift:id}'], function(){
+         Route::group(['prefix' => 'users'], function(){
+           Route::group(['prefix' => '{user:id}'], function(){
+                Route::post('', [ShiftController::class, 'associateNurseToShift']);
+                Route::delete('', [ShiftController::class, 'disassociateNurseToShift']);
+           });
+         });
+      });
    });
 });
