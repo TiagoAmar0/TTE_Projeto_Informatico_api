@@ -233,8 +233,10 @@ class ScheduleController extends Controller
     {
         $schedule->load([
             'userShifts',
-            'shifts',
             'users',
+            'shifts',
+            'userShifts.user',
+            'userShifts.shift',
         ]);
         return new ScheduleResource($schedule);
     }
