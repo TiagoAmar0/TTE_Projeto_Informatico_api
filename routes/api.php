@@ -5,6 +5,7 @@ use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ShiftUserController;
+use App\Http\Controllers\SwapController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -91,4 +92,9 @@ Route::middleware('auth:api')->group(function(){
     * Swaps
     */
     Route::get('user-shifts', [ShiftUserController::class, 'index']);
+    Route::group(['prefix' => 'swaps'], function(){
+        Route::post('', [SwapController::class, 'store']);
+        Route::get('proposed-to-user', [SwapController::class, 'swapsProposedToUser']);
+        Route::get('user-proposed', [SwapController::class, 'swapsUserIsProposing']);
+    });
 });

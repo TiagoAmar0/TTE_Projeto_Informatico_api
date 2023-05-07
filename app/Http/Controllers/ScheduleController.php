@@ -266,6 +266,7 @@ class ScheduleController extends Controller
                 })
                 ->exists();
 
+
             if ($exists) {
                 return response()->json(['message' => 'Já existem horários definidos neste intervalo de tempo'], 422);
             }
