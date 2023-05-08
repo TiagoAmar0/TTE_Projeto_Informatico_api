@@ -16,10 +16,12 @@ class SwapResource extends JsonResource
     public function toArray(Request $request): array
     {
         $target_shift_user = $this->targetShiftUser;
-        $target_shift_user->load(['shift']);
+        if($target_shift_user)
+            $target_shift_user->load(['shift']);
 
         $payment_shift_user = $this->paymentShiftUser;
-        $payment_shift_user->load(['shift']);
+        if($payment_shift_user)
+            $payment_shift_user->load(['shift']);
 
         return  [
             'id' => $this->id,

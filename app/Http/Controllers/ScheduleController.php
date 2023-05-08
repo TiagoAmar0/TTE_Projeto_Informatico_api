@@ -260,6 +260,7 @@ class ScheduleController extends Controller
             $exists = Schedule::query()
                 ->whereNot('id', $schedule->id)
                 ->where('service_id', $service->id)
+                ->where('draft', false)
                 ->where(function($query) use ($request){
                     $query->whereBetween('start', [$request->date_range[0], $request->date_range[1]]);
                     $query->orWhereBetween('end', [$request->date_range[0], $request->date_range[1]]);
@@ -268,7 +269,9 @@ class ScheduleController extends Controller
 
 
             if ($exists) {
-                return response()->json(['message' => 'Já existem horários definidos neste intervalo de tempo'], 422);
+                return response()->json([
+                    'message' => 'Já existem horários definidos neste intervalo de tempo',
+                ], 422);
             }
         }
 

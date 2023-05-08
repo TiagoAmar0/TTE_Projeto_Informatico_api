@@ -19,13 +19,9 @@ class ShiftUserController extends Controller
      */
     public function index(Request $request)
     {
-        $request->validate([
-            'date' => 'required|date'
-        ]);
-
         $user = Auth::user();
 
-        $date = Carbon::createFromFormat('Y-m-d\TH:i:s.u\Z', $request->date)->startOfDay()->format('Y-m-d');
+        $date = Carbon::createFromFormat('d-m-Y', $request->date)->startOfDay()->format('Y-m-d');
 
         $shift_user = $user->shiftUsers()
             ->whereHas('schedule', function ($query){
@@ -42,17 +38,14 @@ class ShiftUserController extends Controller
         $available_swaps = [];
         $user_ids = [];
 
-        $swaps_proposed =
-
         $shift_users = ShiftUser::query()
-            ->where('schedule_id', $shift_user->schedule_id)
-            ->whereNot('user_id' ,Auth::id())
-//            ->whereNotIn('id', Swap::query()->where('proposing_user_id', Auth::id())->get()->pluck('payment_shift_user')->toArray())
-            ->whereNot(function($query) use ($date, $shift_user){
-                $query->where('date', $date);
-                $query->where('shift_id', $shift_user->id);
+            ->where(function($q) use ($shift_user, $date){
+                $q->where('schedule_id', $shift_user->schedule_id);
+                $q->where('user_id', '!=' ,Auth::id());
+                $q->where('shift_id', '!=', $shift_user->shift_id);
+                $q->where('date', $date);
             })
-            ->where('date', $date)
+            ->whereNotIn('id', $user->swapsUserIsProposing()->pluck('payment_shift_user')->toArray())
             ->with(['user', 'shift'])
             ->get();
 
@@ -85,7 +78,9 @@ class ShiftUserController extends Controller
         // Obter dias em que pode pagar a troca da folga
         $shift_users = ShiftUser::query()
             ->whereIn('user_id', $users_resting_in_date)
+            ->where('date', '>=', Carbon::now()->startOfDay()->format('Y-m-d'))
             ->whereNotIn('date', ShiftUser::query()->where('user_id', Auth::id())->pluck('date'))
+            ->whereNotIn('id', $user->swapsUserIsProposing()->pluck('payment_shift_user')->toArray())
             ->get();
 
         foreach ($shift_users as $su){
@@ -111,13 +106,6 @@ class ShiftUserController extends Controller
             'available_swaps' => array_values($available_swaps),
             'user_ids' => $user_ids
         ]);
-
-
-
-//        return response()->json([
-//            'available_swaps' => ShiftUserResource::collection($available_swaps),
-//            'users_without_shift' => UserResource::collection($users_without_shift)
-//        ]);
     }
 
 

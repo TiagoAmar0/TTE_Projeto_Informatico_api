@@ -22,7 +22,15 @@ class SwapController extends Controller
     }
 
     public function swapsProposedToUser(){
-        return Auth::user()->swapsProposedToUser;
+        return SwapResource::collection(Auth::user()->swapsProposedToUser()->get());
+    }
+
+    public function approve(Swap $swap){
+
+    }
+
+    public function reject(Swap $swap){
+
     }
 
     /**
@@ -50,7 +58,7 @@ class SwapController extends Controller
                 // Verificar se as datas batem certo
                 if($proposed_swap_shift_user->date === $shift_user->date)
                     return response()->json([
-                        'message' => 'Inputs inválidos4',
+                        'message' => 'Inputs inválidos',
                     ], 422);
 
                 // Verificar se o enfermeiro a que se pede a troca está de folga
@@ -61,7 +69,7 @@ class SwapController extends Controller
 
                 if($exists)
                     return response()->json([
-                        'message' => 'Input inválidos3'
+                        'message' => 'Input inválidos'
                     ], 422);
 
                 // Verificar se o utilizador a pedir troca tem turnos no dia em que pretende pagar
@@ -72,7 +80,7 @@ class SwapController extends Controller
 
                 if($exists)
                     return response()->json([
-                        'message' => 'Inputs inválidos1',
+                        'message' => 'Inputs inválidos',
                         'date' => $proposed_swap_shift_user->date
                     ], 422);
 
