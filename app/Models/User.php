@@ -45,4 +45,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(ShiftUser::class);
     }
+
+    public function swapsUserIsProposing()
+    {
+        return $this->hasMany(Swap::class, 'proposing_user_id');
+    }
+
+    public function swapsProposedToUser()
+    {
+        return $this->hasMany(Swap::class, 'target_user_id');
+    }
 }

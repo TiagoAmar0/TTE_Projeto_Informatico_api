@@ -4,6 +4,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\ShiftUserController;
+use App\Http\Controllers\SwapController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -41,6 +43,7 @@ Route::middleware('auth:api')->group(function(){
       });
    })->middleware('auth.admin');
 
+   /** Services */
    Route::group(['prefix' => 'services'], function(){
        Route::get('', [ServiceController::class, 'index'])->middleware('auth.admin');
        Route::post('', [ServiceController::class, 'store'])->middleware('auth.admin');
@@ -54,6 +57,9 @@ Route::middleware('auth:api')->group(function(){
                Route::delete('{user}', [ServiceController::class, 'disassociateUserToService'])->middleware('can:is-service-lead,service');
            });
 
+           /**
+            * Schedules
+            */
            Route::group(['prefix' => 'schedules'], function(){
               Route::get('', [ScheduleController::class, 'index']);
               Route::post('', [ScheduleController::class, 'store']);
@@ -68,6 +74,9 @@ Route::middleware('auth:api')->group(function(){
        });
    });
 
+    /**
+     * Shifts
+     */
    Route::group(['prefix' => 'shifts'], function(){
       Route::group(['prefix' => '{shift:id}'], function(){
          Route::group(['prefix' => 'users'], function(){
@@ -78,4 +87,14 @@ Route::middleware('auth:api')->group(function(){
          });
       });
    });
+
+   /**
+    * Swaps
+    */
+    Route::get('user-shifts', [ShiftUserController::class, 'index']);
+    Route::group(['prefix' => 'swaps'], function(){
+        Route::post('', [SwapController::class, 'store']);
+        Route::get('proposed-to-user', [SwapController::class, 'swapsProposedToUser']);
+        Route::get('user-proposed', [SwapController::class, 'swapsUserIsProposing']);
+    });
 });
