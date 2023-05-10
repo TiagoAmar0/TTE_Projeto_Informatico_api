@@ -32,7 +32,7 @@ class ShiftUserController extends Controller
 
         if(!$shift_user)
             return response()->json([
-               'data' => null
+               'data' => []
             ]);
 
         $available_swaps = [];
@@ -103,7 +103,7 @@ class ShiftUserController extends Controller
 
         return response()->json([
             'user_shift' => new ShiftUserResource($shift_user),
-            'available_swaps' => array_values($available_swaps),
+            'available_swaps' => array_values($available_swaps) ?: [],
             'user_ids' => $user_ids
         ]);
     }
