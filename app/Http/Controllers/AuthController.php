@@ -75,20 +75,22 @@ class AuthController extends Controller
 
     public function forgotPassword(Request $request){
         $request->validate([
-            'email' => 'required|email|unique:password_reset_tokens,email'
+            'email' => 'required|email'
         ]);
 
         $user = User::where('email', $request->email)->first();
 
         if($user){
             $token = Str::random(64);
-            DB::table('password_reset_tokens')->insert([
+            DB::table('password_reset_tokens')->updateOrInsert([
+                'email' => $request->email,
+            ],
+            [
                 'token' => $token,
                 'created_at' => now(),
-                'email' => $request->email,
             ]);
 
-            $reset_url = config('app.frontend_url') . 'reset-password/token?=' . $token;
+            $reset_url = config('app.frontend_url') . 'reset-password?token=' . $token;
             Mail::to($request->email)->send(new SendResetPasswordEmail($reset_url, 'Clique na ligação abaixo para recuperar a sua senha'));
         }
 

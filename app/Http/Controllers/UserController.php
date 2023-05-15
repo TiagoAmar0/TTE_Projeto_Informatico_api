@@ -82,6 +82,8 @@ class UserController extends Controller
             ], 422);
         }
 
+        $user->tokens()->delete();
+        DB::table('password_reset_tokens')->where('email', $user->email)->delete();
         $user->delete();
 
         return response()->json([
