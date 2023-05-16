@@ -25,9 +25,7 @@ class ServiceSeeder extends Seeder
             'name' => 'Medicina Geral'
         ]);
 
-        DB::table('services')->insert([
-            'name' => 'Análises Clínicas'
-        ]);
+
 
         DB::table('services')->insert([
             'name' => 'Arritmologia'
