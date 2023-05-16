@@ -21,7 +21,7 @@ class ScheduleResource extends JsonResource
             'draft' => $this->draft,
             'service_id' => $this->service_id,
             'shifts' => $this->whenLoaded('shifts', ShiftResource::collection($this->shifts()->get())),
-            'users' => $this->whenLoaded('users', UserResource::collection($this->users()->get())),
+            'users' => $this->whenLoaded('users', UserResource::collection($this->users()->orderBy('name')->get())),
             'user_shifts' => $this->whenLoaded('userShifts', ShiftUserResource::collection($this->userShifts)),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
