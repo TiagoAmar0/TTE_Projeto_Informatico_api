@@ -19,6 +19,7 @@ class ShiftSeeder extends Seeder
             Shift::query()->create([
                 'service_id' => $service->id,
                 'name' => 'M',
+                'description' => 'Manhã',
                 'start' => '00:00:00',
                 'end' => '00:07:59',
                 'minutes' => 8 * 60,
@@ -28,6 +29,7 @@ class ShiftSeeder extends Seeder
             Shift::query()->create([
                 'service_id' => $service->id,
                 'name' => 'T',
+                'description' => 'Tarde',
                 'start' => '00:08:00',
                 'end' => '00:15:59',
                 'minutes' => 8 * 60,
@@ -37,6 +39,7 @@ class ShiftSeeder extends Seeder
             Shift::query()->create([
                 'service_id' => $service->id,
                 'name' => 'N',
+                'description' => 'Noite',
                 'start' => '00:16:00',
                 'end' => '00:23:59',
                 'minutes' => 8 * 60,

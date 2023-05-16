@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
 
 
         // Clean tables
+        DB::table('swaps')->truncate();
         DB::table('shift_user')->truncate();
         DB::table('schedules')->truncate();
         DB::table('shifts')->truncate();

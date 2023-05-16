@@ -10,7 +10,7 @@ class Shift extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['service_id', 'start', 'end', 'nurses_qty', 'minutes'];
+    protected $fillable = ['name', 'description', 'service_id', 'start', 'end', 'nurses_qty', 'minutes'];
 
     public function service(){
         return $this->belongsTo(Service::class);

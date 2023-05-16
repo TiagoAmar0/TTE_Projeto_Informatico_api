@@ -53,6 +53,7 @@ class User extends Authenticatable
 
     public function swapsProposedToUser()
     {
-        return $this->hasMany(Swap::class, 'target_user_id');
+        return $this->hasMany(Swap::class, 'target_user_id')
+            ->where('status', 'pending');
     }
 }

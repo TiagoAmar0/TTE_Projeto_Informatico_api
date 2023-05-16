@@ -32,7 +32,7 @@ class SwapResource extends JsonResource
             'direct' => $this->direct,
             'status' => match ($this->status) {
                 'pending' => 'Pendente',
-                'approved' => 'Aprovado',
+                'accepted' => 'Aprovado',
                 'rejected' => 'Rejeitado'
             }
         ];
