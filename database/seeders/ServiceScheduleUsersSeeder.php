@@ -81,6 +81,110 @@ class ServiceScheduleUsersSeeder extends Seeder
             'type' => 'nurse'
         ]);
 
+        User::query()->insert([
+            'name' => 'Bruna',
+            'email' => 'bruna@tte.pt',
+            'password' => Hash::make('password'),
+            'service_id' => $service->id,
+            'type' => 'nurse'
+        ]);
+
+        User::query()->insert([
+            'name' => 'Rodrigo',
+            'email' => 'rodrigo@tte.pt',
+            'password' => Hash::make('password'),
+            'service_id' => $service->id,
+            'type' => 'nurse'
+        ]);
+
+        User::query()->insert([
+            'name' => 'Adriano',
+            'email' => 'adriano@tte.pt',
+            'password' => Hash::make('password'),
+            'service_id' => $service->id,
+            'type' => 'nurse'
+        ]);
+
+        User::query()->insert([
+            'name' => 'Miguel',
+            'email' => 'miguel@tte.pt',
+            'password' => Hash::make('password'),
+            'service_id' => $service->id,
+            'type' => 'nurse'
+        ]);
+
+        User::query()->insert([
+            'name' => 'Tiago',
+            'email' => 'tiago@tte.pt',
+            'password' => Hash::make('password'),
+            'service_id' => $service->id,
+            'type' => 'nurse'
+        ]);
+
+        User::query()->insert([
+            'name' => 'Fernando',
+            'email' => 'fernando@tte.pt',
+            'password' => Hash::make('password'),
+            'service_id' => $service->id,
+            'type' => 'nurse'
+        ]);
+
+        User::query()->insert([
+            'name' => 'Kevin',
+            'email' => 'kevin@tte.pt',
+            'password' => Hash::make('password'),
+            'service_id' => $service->id,
+            'type' => 'nurse'
+        ]);
+
+        User::query()->insert([
+            'name' => 'Diogo',
+            'email' => 'diogo@tte.pt',
+            'password' => Hash::make('password'),
+            'service_id' => $service->id,
+            'type' => 'nurse'
+        ]);
+
+        User::query()->insert([
+            'name' => 'Samuel',
+            'email' => 'samuel@tte.pt',
+            'password' => Hash::make('password'),
+            'service_id' => $service->id,
+            'type' => 'nurse'
+        ]);
+
+        User::query()->insert([
+            'name' => 'Gonçalo',
+            'email' => 'goncalo@tte.pt',
+            'password' => Hash::make('password'),
+            'service_id' => $service->id,
+            'type' => 'nurse'
+        ]);
+
+        User::query()->insert([
+            'name' => 'Bernardo',
+            'email' => 'bernardo@tte.pt',
+            'password' => Hash::make('password'),
+            'service_id' => $service->id,
+            'type' => 'nurse'
+        ]);
+
+        User::query()->insert([
+            'name' => 'Catarina',
+            'email' => 'catarina@tte.pt',
+            'password' => Hash::make('password'),
+            'service_id' => $service->id,
+            'type' => 'nurse'
+        ]);
+
+        User::query()->insert([
+            'name' => 'Helena',
+            'email' => 'helena@tte.pt',
+            'password' => Hash::make('password'),
+            'service_id' => $service->id,
+            'type' => 'nurse'
+        ]);
+
         $users = User::query()->where('service_id', $service->id)->get();
         $start_date = Carbon::now();
         $end_date = Carbon::now()->addDays(28);
@@ -128,8 +232,14 @@ class ServiceScheduleUsersSeeder extends Seeder
         $shifts = [
             $morning->id,
             $morning->id,
+            $morning->id,
+            $morning->id,
             $afternoon->id,
             $afternoon->id,
+            $afternoon->id,
+            $afternoon->id,
+            $night->id,
+            $night->id,
             $night->id,
             $night->id,
         ];
@@ -138,11 +248,11 @@ class ServiceScheduleUsersSeeder extends Seeder
         echo "Users: ". $users->count() . "\n";
 
         while ($start_date->isBefore($end_date)){
-            shuffle($shifts);
+            $users = $users->shuffle();
             echo "\nDay " . $start_date->format('d-m-Y') . "\n\n";
             $shift_index = 0;
             foreach ($users as $i => $user){
-                if($i != $index_folga){
+                if($i < count($shifts)){
                     ShiftUser::query()->insert([
                         'user_id' => $user->id,
                         'shift_id' => $shifts[$shift_index],
@@ -154,11 +264,11 @@ class ServiceScheduleUsersSeeder extends Seeder
                 }
             }
 
-            if($index_folga != $total - 1){
-                $index_folga++;
-            } else {
-                $index_folga = 0;
-            }
+//            if($index_folga != $total - 1){
+//                $index_folga++;
+//            } else {
+//                $index_folga = 0;
+//            }
 
             $start_date = $start_date->addDay();
         }
