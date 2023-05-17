@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\SwapResource;
 use App\Models\ShiftUser;
 use App\Models\Swap;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -23,14 +24,6 @@ class SwapController extends Controller
 
     public function swapsProposedToUser(){
         return SwapResource::collection(Auth::user()->swapsProposedToUser()->get());
-    }
-
-    public function approve(Swap $swap){
-
-    }
-
-    public function reject(Swap $swap){
-
     }
 
     /**
@@ -121,26 +114,53 @@ class SwapController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Aprovar troca de turno
+     * @param Swap $swap
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function show(string $id)
-    {
-        //
+    public function approveSwap(Swap $swap){
+        $target_shift_user = ShiftUser::query()->findOrFail($swap->target_shift_user);
+        $payment_shift_user = ShiftUser::query()->findOrFail($swap->payment_shift_user);
+
+        // Trocar diretamente os turnos
+        $target_shift_user->update([
+            'user_id' => $swap->target_user_id
+        ]);
+
+        $payment_shift_user->update([
+            'user_id' => $swap->proposing_user_id
+        ]);
+
+        $swap->update([
+            'status' => 'accepted'
+        ]);
+
+        // Apagar todas as trocas ainda abertas para aquele turno
+        Swap::query()
+            ->where('target_shift_user', $swap->target_shift_user)
+            ->whereNot('id', $swap->id)
+            ->where('status', 'pending')
+            ->delete();
+
+        // TODO: enviar email a confirmar a aprovação do pedido
+
+        return response()->json([
+            'message' => 'A sua troca foi aprovada',
+        ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
+    public function rejectSwap(Swap $swap){
+        $swap->update([
+            'status' => 'rejected'
+        ]);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        $user = User::query()->findOrFail($swap->proposing_user_id);
+        if(!$user->swapsUserIsProposing()->where('target_shift_user', $swap->target_shift_user)->whereNot('status', 'rejected')->count()){
+            // TODO: enviar email caso todas as propostas de troca daquele turno tenham sido rejeitadas
+        }
+
+        return response()->json([
+           'message' => 'Resposta enviada'
+        ]);
     }
 }
