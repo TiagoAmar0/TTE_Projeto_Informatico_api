@@ -96,5 +96,10 @@ Route::middleware('auth:api')->group(function(){
         Route::post('', [SwapController::class, 'store']);
         Route::get('proposed-to-user', [SwapController::class, 'swapsProposedToUser']);
         Route::get('user-proposed', [SwapController::class, 'swapsUserIsProposing']);
+
+        Route::group(['prefix' => '{swap}'], function (){
+            Route::patch('approve', [SwapController::class, 'approveSwap']);
+            Route::patch('reject', [SwapController::class, 'rejectSwap']);
+        });
     });
 });

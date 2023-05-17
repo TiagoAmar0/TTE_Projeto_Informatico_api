@@ -19,10 +19,21 @@ class ShiftUserController extends Controller
      */
     public function index(Request $request)
     {
+        $request->validate([
+           'date' => 'required'
+        ]);
+
         $user = Auth::user();
 
-        $date = Carbon::createFromFormat('d-m-Y', $request->date)->startOfDay()->format('Y-m-d');
+        // Não permitir trocas no próprio dia nem em dias já passados
+        $date = Carbon::createFromFormat('d-m-Y', $request->date)->startOfDay();
+        if($date->isToday() || $date->isPast()){
+            return response()->json([
+               'message' => 'Este dia já foi concluído'
+            ], 422);
+        }
 
+        $date = $date->format('Y-m-d');
         $shift_user = $user->shiftUsers()
             ->whereHas('schedule', function ($query){
               $query->where('draft', false);
@@ -38,6 +49,7 @@ class ShiftUserController extends Controller
         $available_swaps = [];
         $user_ids = [];
 
+        // Selecionar os turnos alocados a outros enfermeiros
         $shift_users = ShiftUser::query()
             ->where(function($q) use ($shift_user, $date){
                 $q->where('schedule_id', $shift_user->schedule_id);
@@ -58,7 +70,7 @@ class ShiftUserController extends Controller
                 'user_name' => $su['user']['name'],
                 'date' => $su['date'],
                 'shift_id' => $su['shift_id'],
-                'shift_name' => $su['shift']['name'],
+                'shift_name' => $su['shift']['description'],
                 'rest' => false
             ];
 
@@ -79,7 +91,7 @@ class ShiftUserController extends Controller
         // Obter dias em que pode pagar a troca da folga
         $shift_users = ShiftUser::query()
             ->whereIn('user_id', $users_resting_in_date)
-            ->where('date', '>=', Carbon::now()->startOfDay()->format('Y-m-d'))
+            ->where('date', '>', Carbon::now()->startOfDay()->format('Y-m-d'))
             ->whereNotIn('date', ShiftUser::query()->where('user_id', Auth::id())->pluck('date'))
             ->whereNotIn('id', $user->swapsUserIsProposing()->pluck('payment_shift_user')->toArray())
             ->get();
@@ -91,7 +103,7 @@ class ShiftUserController extends Controller
                 'user_name' => $su['user']['name'],
                 'date' => $su['date'],
                 'shift_id' => $su['shift_id'],
-                'shift_name' => $su['shift']['name'],
+                'shift_name' => $su['shift']['description'],
                 'rest' => true
             ];
 
@@ -120,21 +132,5 @@ class ShiftUserController extends Controller
             'shift'
         ]);
         return new ShiftUserResource($shift_user);
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, ShiftUser $shift_user)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
     }
 }

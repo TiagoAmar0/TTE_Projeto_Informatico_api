@@ -16,6 +16,7 @@ return new class extends Migration
             $table->id();
             $table->foreignIdFor(Service::class);
             $table->string('name');
+            $table->string('description');
             $table->time('start');
             $table->time('end');
             $table->integer('minutes');
