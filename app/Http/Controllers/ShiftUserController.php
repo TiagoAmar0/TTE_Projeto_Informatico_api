@@ -56,6 +56,7 @@ class ShiftUserController extends Controller
                 $q->where('user_id', '!=' ,Auth::id());
                 $q->where('shift_id', '!=', $shift_user->shift_id);
                 $q->where('date', $date);
+                $q->where('date', ">=", Carbon::now()->startOfDay()->format('Y-m-d'));
             })
             ->whereNotIn('id', $user->swapsUserIsProposing()->pluck('payment_shift_user')->toArray())
             ->with(['user', 'shift'])
