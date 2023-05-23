@@ -163,4 +163,17 @@ class SwapController extends Controller
            'message' => 'Resposta enviada'
         ]);
     }
+
+    public function swapsHistory(){
+
+        $accepted_swaps = Swap::query()
+            ->where('status', 'accepted')
+            ->where(function($query) {
+                $query->where('target_user_id', Auth::id());
+                $query->orWhere('proposing_user_id', Auth::id());
+            })
+            ->get();
+
+        return SwapResource::collection($accepted_swaps);
+    }
 }
