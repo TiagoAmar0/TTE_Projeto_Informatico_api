@@ -3,14 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\ShiftUserResource;
-use App\Http\Resources\UserResource;
 use App\Models\ShiftUser;
-use App\Models\Swap;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class ShiftUserController extends Controller
 {
@@ -69,6 +66,7 @@ class ShiftUserController extends Controller
                 'user_id' => $su['user_id'],
                 'user_name' => $su['user']['name'],
                 'date' => $su['date'],
+                'day_of_week' => ucfirst(Carbon::createFromFormat('Y-m-d', $su['date'])->minDayName),
                 'shift_id' => $su['shift_id'],
                 'shift_name' => $su['shift']['description'],
                 'rest' => false
@@ -102,6 +100,7 @@ class ShiftUserController extends Controller
                 'user_id' => $su['user_id'],
                 'user_name' => $su['user']['name'],
                 'date' => $su['date'],
+                'day_of_week' => ucfirst(Carbon::createFromFormat('Y-m-d', $su['date'])->minDayName),
                 'shift_id' => $su['shift_id'],
                 'shift_name' => $su['shift']['description'],
                 'rest' => true
