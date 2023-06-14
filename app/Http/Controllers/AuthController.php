@@ -34,9 +34,13 @@ class AuthController extends Controller
         ];
     }
 
-
     public function login(Request $request): JsonResponse
     {
+        $request->validate([
+            'email' => 'required',
+            'password' => 'required'
+        ]);
+
         try {
             request()->request->add($this->passportAuthenticationData($request->email, $request->password));
             $request = Request::create(config('auth.PASSPORT_SERVER_URL') . '/oauth/token', 'POST');
@@ -46,7 +50,7 @@ class AuthController extends Controller
             return response()->json($auth_server_response, $errorCode);
         }
         catch (\Exception $e) {
-            return response()->json(['Authentication has failed!', $e->getMessage()], 401);
+            return response()->json(['Authentication has failed!', $e->getMessage()], 400);
         }
     }
 
