@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Schedule extends Model
 {
+
+    use HasFactory;
+
     protected $fillable = [
         'start',
         'end',

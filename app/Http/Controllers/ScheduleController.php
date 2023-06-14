@@ -5,14 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Resources\ScheduleResource;
 use App\Models\Schedule;
 use App\Models\Service;
-use App\Models\Shift;
 use App\Models\ShiftUser;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Psy\Exception\ThrowUpException;
 
 class ScheduleController extends Controller
 {
@@ -22,101 +19,6 @@ class ScheduleController extends Controller
     public function index(Service $service)
     {
         return ScheduleResource::collection($service->schedules()->get());
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     * @throws \Throwable
-     */
-    public function store_old(Service $service, Request $request)
-    {
-        $request->validate([
-            'draft' => ['required', 'boolean'],
-            'data' => ['required', 'array'],
-            'date_range' => ['required', 'array'],
-            'date_range.*' => ['date'],
-            'data.*.nurses_total' => ['required', 'numeric'],
-            'data.*.date' => ['required'],
-            'data.*.date_formatted' => ['required'],
-        ]);
-
-        if($request->draft === false){
-            // Verify if already exists a schedule in date range
-            $exists = Schedule::query()
-                ->whereBetween('start', [$request->date_range[0], $request->date_range[1]])
-                ->orWhereBetween('end', [$request->date_range[0], $request->date_range[1]])
-                ->exists();
-
-            if($exists){
-                return response()->json([
-                    'message' => 'Já existem horários definidos neste intervalo de tempo'
-                ], 422);
-            }
-        }
-
-        // Verify if for each date, there are not duplicated user or date entries
-        $days = array_map(function($day){
-            return $day['date'];
-        }, $request->data);
-
-        if(count($days) !== count(array_unique($days))){
-            return response()->json([
-                'message' => 'Dados inválidos. (Datas duplicadas)'
-            ], 422);
-        }
-
-        $service_users = $service->users()->pluck('id')->toArray();
-        foreach ($request->data as $day) {
-            foreach ($day['nurses'] as $nurse){
-                if(!in_array($nurse['id'], $service_users)){
-                    return response()->json([
-                        'message' => 'Dados inválidos. (Utilizadores inválidos)'
-                    ], 422);
-                }
-            }
-        }
-
-        try {
-            $schedule = new Schedule();
-            $schedule->start = $request->date_range[0];
-            $schedule->end = $request->date_range[1];
-            $schedule->service_id = $service->id;
-            $schedule->draft = $request->draft;
-            $schedule->saveOrFail();
-
-            $data = [];
-            foreach ($request->data as $day){
-                foreach ($day['nurses'] as $nurse){
-                    if($nurse['shift'] && $nurse['id']){
-                        $data[] = [
-                            'user_id' => $nurse['id'],
-                            'shift_id' => $nurse['shift'],
-                            'schedule_id' => $schedule->id,
-                            'date' => $day['date']
-                        ];
-                    }
-                }
-            }
-
-            ShiftUser::query()->insert($data);
-
-        } catch (\Throwable $t){
-            if(isset($schedule) && $schedule->wasRecentlyCreated){
-                $schedule->delete();
-            }
-            return response()->json([
-                'message' => 'Erro ao processar pedido. Tente de novo',
-                'ex' => $t->getMessage()
-            ], 500);
-        }
-
-
-
-
-        return response()->json([
-            'message' => $request['draft'] ? 'Rascunho guardado' : 'Horário criado com sucesso',
-            'data' => new ScheduleResource($schedule)
-        ]);
     }
 
     public function store(Service $service, Request $request)

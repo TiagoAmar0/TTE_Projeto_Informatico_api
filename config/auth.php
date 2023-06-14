@@ -5,7 +5,7 @@ return [
     'CLIENT_SECRET' =>  env('PASSPORT_CLIENT_SECRET'),
     'PASSPORT_SERVER_URL' =>  env('PASSPORT_SERVER_URL'),
     'defaults' => [
-        'guard' => 'web',
+        'guard' => 'api',
         'passwords' => 'users',
     ],
 
