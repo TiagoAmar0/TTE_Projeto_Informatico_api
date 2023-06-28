@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ShiftResource;
+use App\Models\Service;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -44,6 +46,51 @@ class ShiftController extends Controller
 
         return response()->json([
             'message' => 'Turno removido ao enfermeiro'
+        ]);
+    }
+
+    public function index(Service $service){
+        return ShiftResource::collection($service->shifts);
+    }
+
+    public function store(Service $service, Request $request){
+        $request->validate([
+            'name' => 'required',
+            'description' => 'required',
+            'start' => ['required', 'date_format:H:i'],
+            'end' => ['required', 'date_format:H:i'],
+            'nurses_qty' => ['required', 'numeric', 'min:0'],
+            'hours' => ['hours' => ['required', 'regex:/^\d{2}:\d{2}$/']],
+        ]);
+
+        // Converter horas para minutos
+        list($hours, $minutes) = explode(':', $request->hours);
+
+        $hours = (int) $hours;
+        $minutes = (int) $minutes;
+
+        // Validar se o formato da duração está correto
+        if(($hours <= 0 && $minutes == 0) || $hours < 0 || $minutes < 0 || $minutes > 59){
+            return response()->json([
+                'message' => 'Duração do turno inválida'
+            ], 422);
+        }
+
+        $totalMinutes = ($hours * 60) + $minutes;
+
+        $shift = new Shift([
+           'name' => $request->name,
+            'description' => $request->description,
+            'start' => $request->start,
+            'end' => $request->end,
+            'nurses_qty' => $request->nurses_qty,
+            'minutes' => $totalMinutes
+        ]);
+
+        $service->shifts()->save($shift);
+
+        return response()->json([
+            'message' => 'Turno associado ao serviço'
         ]);
     }
 }

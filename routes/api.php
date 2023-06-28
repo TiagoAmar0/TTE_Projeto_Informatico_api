@@ -52,6 +52,12 @@ Route::middleware('auth:api')->group(function(){
            Route::get('', [ServiceController::class, 'show'])->middleware('can:is-service-lead,service');
            Route::put('', [ServiceController::class, 'update'])->middleware('auth.admin');
            Route::delete('', [ServiceController::class, 'destroy'])->middleware('auth.admin');
+
+           Route::group(['prefix' => 'shifts'], function(){
+              Route::get('', [ShiftController::class, 'index']);
+              Route::post('', [ShiftController::class, 'store']);
+           });
+
            Route::group(['prefix' => 'users'], function(){
                Route::put('{user}', [ServiceController::class, 'associateUserToService'])->middleware('can:is-service-lead,service');
                Route::delete('{user}', [ServiceController::class, 'disassociateUserToService'])->middleware('can:is-service-lead,service');
