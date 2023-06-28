@@ -56,6 +56,12 @@ Route::middleware('auth:api')->group(function(){
            Route::group(['prefix' => 'shifts'], function(){
               Route::get('', [ShiftController::class, 'index']);
               Route::post('', [ShiftController::class, 'store']);
+
+              Route::group(['prefix' => '{shift}'], function(){
+                  Route::get('', [ShiftController::class, 'show']);
+                  Route::put('', [ShiftController::class, 'update']);
+                  Route::delete('', [ShiftController::class, 'destroy']);
+              });
            });
 
            Route::group(['prefix' => 'users'], function(){

@@ -6,6 +6,7 @@ use App\Http\Resources\ShiftResource;
 use App\Models\Service;
 use App\Models\Shift;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -50,7 +51,51 @@ class ShiftController extends Controller
     }
 
     public function index(Service $service){
-        return ShiftResource::collection($service->shifts);
+        return ShiftResource::collection($service->shifts()->orderBy('name')->get());
+    }
+
+    public function show(Service $service, Shift $shift){
+        return new ShiftResource($shift);
+    }
+
+    public function update(Service $service, Shift $shift, Request $request){
+        $request->validate([
+            'name' => 'required',
+            'description' => 'required',
+            'start' => ['required', 'date_format:H:i'],
+            'end' => ['required', 'date_format:H:i'],
+            'nurses_qty' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $start_hour = Carbon::createFromFormat('H:i', $request->start);
+        $end_hour = Carbon::createFromFormat('H:i', $request->end);
+
+        // Caso seja um turno que vai de um dia para o outro
+        if($start_hour->greaterThan($end_hour))
+            $end_hour->addDay();
+
+        $minutes = $start_hour->diffInMinutes($end_hour);
+        // Validar se o formato da duração está correto
+        if($minutes <= 0){
+            return response()->json([
+                'message' => 'Duração do turno inválida'
+            ], 422);
+        }
+
+        $shift->update([
+            'name' => $request->name,
+            'description' => $request->description,
+            'start' => $request->start,
+            'end' => $request->end,
+            'nurses_qty' => $request->nurses_qty,
+            'minutes' => $minutes
+        ]);
+
+        $service->shifts()->save($shift);
+
+        return response()->json([
+            'message' => 'Turno associado ao serviço'
+        ]);
     }
 
     public function store(Service $service, Request $request){
@@ -60,23 +105,22 @@ class ShiftController extends Controller
             'start' => ['required', 'date_format:H:i'],
             'end' => ['required', 'date_format:H:i'],
             'nurses_qty' => ['required', 'numeric', 'min:0'],
-            'hours' => ['hours' => ['required', 'regex:/^\d{2}:\d{2}$/']],
         ]);
 
-        // Converter horas para minutos
-        list($hours, $minutes) = explode(':', $request->hours);
+        $start_hour = Carbon::createFromFormat('H:i', $request->start);
+        $end_hour = Carbon::createFromFormat('H:i', $request->end);
 
-        $hours = (int) $hours;
-        $minutes = (int) $minutes;
+        // Caso seja um turno que vai de um dia para o outro
+        if($start_hour->greaterThan($end_hour))
+            $end_hour->addDay();
 
+        $minutes = $start_hour->diffInMinutes($end_hour);
         // Validar se o formato da duração está correto
-        if(($hours <= 0 && $minutes == 0) || $hours < 0 || $minutes < 0 || $minutes > 59){
+        if($minutes <= 0){
             return response()->json([
                 'message' => 'Duração do turno inválida'
             ], 422);
         }
-
-        $totalMinutes = ($hours * 60) + $minutes;
 
         $shift = new Shift([
            'name' => $request->name,
@@ -84,13 +128,27 @@ class ShiftController extends Controller
             'start' => $request->start,
             'end' => $request->end,
             'nurses_qty' => $request->nurses_qty,
-            'minutes' => $totalMinutes
+            'minutes' => $minutes
         ]);
 
         $service->shifts()->save($shift);
 
         return response()->json([
             'message' => 'Turno associado ao serviço'
+        ]);
+    }
+
+    public function destroy(Service $service, Shift $shift){
+        if($shift->shiftUsers()->exists()){
+            return response()->json([
+                'message' => 'Este turno tem horários atribuídos'
+            ], 500);
+        }
+
+        $shift->delete();
+
+        return response()->json([
+           'message' => 'O turno foi eliminado'
         ]);
     }
 }
