@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\SwapResource;
+use App\Mail\SendResetPasswordEmail;
+use App\Mail\SendSwapNotificationEmail;
 use App\Models\ShiftUser;
 use App\Models\Swap;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 
 class SwapController extends Controller
 {
@@ -142,7 +145,15 @@ class SwapController extends Controller
             ->where('status', 'pending')
             ->delete();
 
-        // TODO: enviar email a confirmar a aprovação do pedido
+        $proposing_user = $swap->proposingUser;
+        $target_user = $swap->targetUser;
+
+        $date = $swap->targetShiftUser->date;
+
+        $message = "$target_user->name aceitou a sua proposta de troca para dia $date";
+        $subject = "Troca aceite";
+
+        Mail::to($proposing_user->email)->send(new SendSwapNotificationEmail($message, $subject));
 
         return response()->json([
             'message' => 'A sua troca foi aprovada',
@@ -154,9 +165,14 @@ class SwapController extends Controller
             'status' => 'rejected'
         ]);
 
-        $user = User::query()->findOrFail($swap->proposing_user_id);
+        $user = $swap->proposingUser;
         if(!$user->swapsUserIsProposing()->where('target_shift_user', $swap->target_shift_user)->whereNot('status', 'rejected')->count()){
-            // TODO: enviar email caso todas as propostas de troca daquele turno tenham sido rejeitadas
+            $date = $swap->targetShiftUser->date;
+            $shift = $swap->targetShiftUser->shift->description;
+
+            $message = "Todas as trocas propostas para o turno $shift de $date foram rejeitadas";
+            $subject = "Propostas rejeitadas para $date";
+            Mail::to($user->email)->send(new SendSwapNotificationEmail($message, $subject));
         }
 
         return response()->json([

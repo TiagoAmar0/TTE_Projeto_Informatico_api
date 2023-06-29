@@ -215,5 +215,4 @@ return [
         // 'ExampleClass' => App\Example\ExampleClass::class,
         'PDF' => \Barryvdh\DomPDF\Facade\Pdf::class,
     ])->toArray(),
-
 ];

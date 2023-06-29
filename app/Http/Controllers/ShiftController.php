@@ -51,7 +51,14 @@ class ShiftController extends Controller
     }
 
     public function index(Service $service){
-        return ShiftResource::collection($service->shifts()->orderBy('name')->get());
+        $shifts = $service->shifts()->orderBy('name')->get();
+
+        $intervalsNotCovered = $this->checkDayIntervalsWithoutShifts($shifts);
+
+        return response()->json([
+            'intervals' => $intervalsNotCovered,
+            'shifts' => ShiftResource::collection($shifts)
+        ]);
     }
 
     public function show(Service $service, Shift $shift){
@@ -150,5 +157,49 @@ class ShiftController extends Controller
         return response()->json([
            'message' => 'O turno foi eliminado'
         ]);
+    }
+
+    private function checkDayIntervalsWithoutShifts($shifts)
+    {
+        $coveredIntervals = [];
+
+        foreach ($shifts as $shift) {
+            $start = Carbon::createFromFormat('H:i:s', $shift['start'])->startOfMinute();
+            $end = Carbon::createFromFormat('H:i:s', $shift['end'])->addMinute()->startOfMinute();
+
+            $coveredIntervals[] = [$start, $end];
+        }
+
+        $startOfDay = Carbon::createFromTime(0, 0);
+        $endOfDay = Carbon::createFromTime(23, 59);
+
+        $intervalsNotCovered = [];
+
+        usort($coveredIntervals, function ($a, $b) {
+            return $a[0] <=> $b[0];
+        });
+
+        $lastEnd = $startOfDay;
+        foreach ($coveredIntervals as $interval) {
+            $start = $interval[0];
+            $end = $interval[1];
+
+            if ($start->greaterThan($lastEnd)) {
+                $intervalsNotCovered[] = [$lastEnd, $start];
+            }
+
+            $lastEnd = max($lastEnd, $end);
+        }
+
+        if ($lastEnd->lessThan($endOfDay)) {
+            $intervalsNotCovered[] = [$lastEnd, $endOfDay];
+        }
+
+        return array_map(function ($interval) {
+            return [
+                $interval[0]->format('H:i'),
+                $interval[1]->format('H:i'),
+            ];
+        }, $intervalsNotCovered);
     }
 }

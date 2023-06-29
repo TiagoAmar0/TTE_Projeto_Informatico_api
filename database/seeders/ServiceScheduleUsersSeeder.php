@@ -201,7 +201,7 @@ class ServiceScheduleUsersSeeder extends Seeder
             'name' => 'M',
             'description' => 'Manhã',
             'start' => '00:00:00',
-            'end' => '00:07:59',
+            'end' => '07:59:00',
             'minutes' => 8 * 60,
             'nurses_qty' => 2,
         ]);
@@ -210,8 +210,8 @@ class ServiceScheduleUsersSeeder extends Seeder
             'service_id' => $service->id,
             'name' => 'T',
             'description' => 'Tarde',
-            'start' => '00:08:00',
-            'end' => '00:15:59',
+            'start' => '08:00:00',
+            'end' => '15:59:00',
             'minutes' => 8 * 60,
             'nurses_qty' => 1,
         ]);
@@ -220,8 +220,8 @@ class ServiceScheduleUsersSeeder extends Seeder
             'service_id' => $service->id,
             'name' => 'N',
             'description' => 'Noite',
-            'start' => '00:16:00',
-            'end' => '00:23:59',
+            'start' => '16:00:00',
+            'end' => '23:59:00',
             'minutes' => 8 * 60,
             'nurses_qty' => 1,
         ]);
