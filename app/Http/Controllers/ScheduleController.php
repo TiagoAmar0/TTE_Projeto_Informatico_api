@@ -6,6 +6,7 @@ use App\Http\Resources\ScheduleResource;
 use App\Models\Schedule;
 use App\Models\Service;
 use App\Models\ShiftUser;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -244,5 +245,85 @@ class ScheduleController extends Controller
         return response()->json([
             'message' => 'O horário foi eliminado'
         ]);
+    }
+
+    public function export(Service $service, Schedule $schedule)
+    {
+        $schedule->load([
+            'userShifts',
+            'users',
+            'shifts',
+            'userShifts.user',
+            'userShifts.shift',
+        ]);
+
+        $days_of_week = [
+            'Dom',
+            'Seg',
+            'Ter',
+            'Qua',
+            'Qui',
+            'Sex',
+            'Sab'
+        ];
+
+        $dates = $this->getDatesInRange($schedule->start, $schedule->end);
+        $tableData = [];
+
+        foreach ($dates as $i => $date){
+
+            $dateObject = Carbon::createFromFormat('d/m/Y', $date);
+
+            $tableData[$i] = [
+                'date' => $date,
+                'day' => $dateObject->format('d'),
+                'month' => $dateObject->format('M'),
+                'day_of_the_week' => $days_of_week[$dateObject->dayOfWeek],
+                'nurses' => $schedule->userShifts->map(function ($user_shift) use ($dateObject) {
+                    $shiftDate = Carbon::parse($user_shift->date);
+                    if ($shiftDate->isSameDay($dateObject)) {
+                        return [
+                            'shift' => $user_shift->shift->name,
+                            'user' => $user_shift->user_id
+                        ];
+                    }
+                    return false;
+                })->filter()
+            ];
+
+            $tableData[$i]['nurses_total'] = count($tableData[$i]['nurses']);
+            $tableData[$i]['shifts'] = $schedule->shifts->map(function ($shift) use ($tableData, $i) {
+                return [
+                    'shift' => $shift->name,
+                    'total' => collect($tableData[$i]['nurses'])
+                        ->filter(function ($shiftUser) use ($shift) {
+                            return $shiftUser['shift'] === $shift->name;
+                        })
+                        ->count()
+                ];
+            })->filter();
+        }
+
+        $pdf = Pdf::loadView('exports.scheduleExport', [
+            'data' => $tableData,
+            'users' => $schedule->users()->orderBy('name')->get(),
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download();
+    }
+
+    private function getDatesInRange($start, $end) : array
+    {
+        $startDate = Carbon::parse($start);
+        $endDate = Carbon::parse($end);
+
+        $dates = [];
+
+        while ($startDate->lte($endDate)) {
+            $dates[] = $startDate->format('d/m/Y');
+            $startDate->addDay();
+        }
+
+        return $dates;
     }
 }

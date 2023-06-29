@@ -79,6 +79,7 @@ Route::middleware('auth:api')->group(function(){
 
                Route::group(['prefix' => '{schedule:id}'], function(){
                    Route::get('', [ScheduleController::class, 'show']);
+                   Route::get('export', [ScheduleController::class, 'export']);
                    Route::delete('', [ScheduleController::class, 'destroy']);
                    Route::put('', [ScheduleController::class, 'update']);
                });
