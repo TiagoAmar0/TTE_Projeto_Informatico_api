@@ -304,9 +304,18 @@ class ScheduleController extends Controller
             })->filter();
         }
 
+        $start = Carbon::parse($schedule->start);
+        $end = Carbon::parse($schedule->end);
+
         $pdf = Pdf::loadView('exports.scheduleExport', [
             'data' => $tableData,
             'users' => $schedule->users()->orderBy('name')->get(),
+            'service' => $service->name,
+            'start_day' => $start->day,
+            'start_month' => $start->monthName,
+            'end_day' => $end->day,
+            'end_month' => $end->monthName,
+            'end' => Carbon::parse($schedule->end)->format('d M')
         ])->setPaper('a4', 'landscape');
 
         return $pdf->download();

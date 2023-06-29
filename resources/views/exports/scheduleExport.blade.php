@@ -42,6 +42,7 @@
     </style>
 </head>
 <body>
+    <h1>Horário {{ $service }}: {{ $start_day }} de {{ $start_month }} a {{ $end_day }} de {{ $end_month }}</h1>
     <table class="table is-striped is-bordered">
         <thead>
             <tr>
