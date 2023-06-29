@@ -85,7 +85,7 @@ return [
     |
     */
 
-    'locale' => 'pt_PT',
+    'locale' => 'pt',
 
     /*
     |--------------------------------------------------------------------------
@@ -111,7 +111,7 @@ return [
     |
     */
 
-    'faker_locale' => 'pt_PT',
+    'faker_locale' => 'pt',
 
     /*
     |--------------------------------------------------------------------------
@@ -215,5 +215,4 @@ return [
         // 'ExampleClass' => App\Example\ExampleClass::class,
         'PDF' => \Barryvdh\DomPDF\Facade\Pdf::class,
     ])->toArray(),
-
 ];
