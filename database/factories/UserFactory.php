@@ -18,8 +18,6 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
-        $types = ['admin', 'lead-nurse', 'nurse'];
-
         return [
             'name' => $this->faker->name,
             'email' => $this->faker->unique()->safeEmail,

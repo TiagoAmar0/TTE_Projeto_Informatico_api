@@ -47,7 +47,7 @@ it('should create a new user', function () {
 
     $response = $this->json('POST', '/api/users', $params, $headers);
 
-    $response->assertStatus(200);
+    $response->assertStatus(201);
 
     $this->assertDatabaseHas('users', [
         'name' => $params['name'],

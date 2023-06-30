@@ -2,6 +2,7 @@
 
 use App\Models\Schedule;
 use App\Models\Service;
+use App\Models\ShiftUser;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +39,43 @@ it('can list services', function () {
     ]);
 });
 
+test('store final schedule without shift users', function () {
+    ShiftUser::query()->truncate();
+    Schedule::query()->truncate();
+
+    $service = Service::factory()->create();
+    $admin = User::factory()->create(['type' => 'lead-nurse', 'service_id' => $service->id]);
+    $token = $admin->createToken('TestToken')->accessToken;
+    $headers = ['Authorization' => 'Bearer ' . $token];
+
+    $data = [
+        'draft' => false,
+        'date_range' => [
+            Carbon::createFromFormat('Y-m-d', fake()->date())->format('Y-m-d\TH:i:s.u\Z'),
+            Carbon::createFromFormat('Y-m-d', fake()->date())->format('Y-m-d\TH:i:s.u\Z')
+        ],
+        'data' => [
+            [
+                'nurses_total' => fake()->numberBetween(1, 5),
+                'date' => Carbon::createFromFormat('Y-m-d', fake()->date())->format('d/m/Y'),
+                'date_formatted' => Carbon::createFromFormat('Y-m-d', fake()->date())->format('d/m/Y'),
+                'nurses' => []
+            ]
+        ]
+    ];
+
+    $response = $this->postJson("/api/services/{$service->id}/schedules", $data, $headers);
+
+    $response->assertStatus(422);
+    $response->assertJsonStructure([
+        'message'
+    ]);
+});
+
 it('can create a new schedule', function () {
+    ShiftUser::query()->truncate();
+    Schedule::query()->truncate();
+
     $service = Service::factory()->create();
     $admin = User::factory()->create(['type' => 'lead-nurse', 'service_id' => $service->id]);
     $token = $admin->createToken('TestToken')->accessToken;
@@ -88,51 +125,22 @@ it('can create a new schedule', function () {
     ]);
 });
 
-test('store with invalid data', function () {
+it('store with invalid data', function () {
+    ShiftUser::query()->truncate();
+    Schedule::query()->truncate();
     $service = Service::factory()->create();
     $admin = User::factory()->create(['type' => 'lead-nurse', 'service_id' => $service->id]);
     $token = $admin->createToken('TestToken')->accessToken;
     $headers = ['Authorization' => 'Bearer ' . $token];
 
-    $service = Service::factory()->create();
     $data = [];
 
     $response = $this->postJson("/api/services/{$service->id}/schedules", $data, $headers);
-
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['draft', 'date_range', 'data']);
 });
 
-test('store final schedule without shift users', function () {
-    $service = Service::factory()->create();
-    $admin = User::factory()->create(['type' => 'lead-nurse', 'service_id' => $service->id]);
-    $token = $admin->createToken('TestToken')->accessToken;
-    $headers = ['Authorization' => 'Bearer ' . $token];
 
-    $service = Service::factory()->create();
-    $data = [
-        'draft' => false,
-        'date_range' => [
-            Carbon::createFromFormat('Y-m-d', fake()->date())->format('Y-m-d\TH:i:s.u\Z'),
-            Carbon::createFromFormat('Y-m-d', fake()->date())->format('Y-m-d\TH:i:s.u\Z')
-        ],
-        'data' => [
-            [
-                'nurses_total' => fake()->numberBetween(1, 5),
-                'date' => Carbon::createFromFormat('Y-m-d', fake()->date())->format('d/m/Y'),
-                'date_formatted' => Carbon::createFromFormat('Y-m-d', fake()->date())->format('d/m/Y'),
-                'nurses' => []
-            ]
-        ]
-    ];
-
-    $response = $this->postJson("/api/services/{$service->id}/schedules", $data, $headers);
-
-    $response->assertStatus(422);
-    $response->assertJsonStructure([
-        'message'
-    ]);
-});
 
 it('shows schedule', function () {
     $service = Service::factory()->create();
