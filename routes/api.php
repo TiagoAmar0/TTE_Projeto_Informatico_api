@@ -54,13 +54,13 @@ Route::middleware('auth:api')->group(function(){
            Route::delete('', [ServiceController::class, 'destroy'])->middleware('auth.admin');
 
            Route::group(['prefix' => 'shifts'], function(){
-              Route::get('', [ShiftController::class, 'index']);
-              Route::post('', [ShiftController::class, 'store']);
+              Route::get('', [ShiftController::class, 'index'])->middleware('can:is-service-lead,service');
+              Route::post('', [ShiftController::class, 'store'])->middleware('can:is-service-lead,service');
 
               Route::group(['prefix' => '{shift}'], function(){
-                  Route::get('', [ShiftController::class, 'show']);
-                  Route::put('', [ShiftController::class, 'update']);
-                  Route::delete('', [ShiftController::class, 'destroy']);
+                  Route::get('', [ShiftController::class, 'show'])->middleware('can:is-service-lead,service');
+                  Route::put('', [ShiftController::class, 'update'])->middleware('can:is-service-lead,service');
+                  Route::delete('', [ShiftController::class, 'destroy'])->middleware('can:is-service-lead,service');
               });
            });
 
@@ -73,15 +73,14 @@ Route::middleware('auth:api')->group(function(){
             * Schedules
             */
            Route::group(['prefix' => 'schedules'], function(){
-              Route::get('', [ScheduleController::class, 'index']);
-              Route::post('', [ScheduleController::class, 'store']);
-//                  ->middleware('can:is-service-lead,service');
+              Route::get('', [ScheduleController::class, 'index'])->middleware('can:is-service-lead,service');
+              Route::post('', [ScheduleController::class, 'store'])->middleware('can:is-service-lead,service');
 
                Route::group(['prefix' => '{schedule:id}'], function(){
-                   Route::get('', [ScheduleController::class, 'show']);
-                   Route::get('export', [ScheduleController::class, 'export']);
-                   Route::delete('', [ScheduleController::class, 'destroy']);
-                   Route::put('', [ScheduleController::class, 'update']);
+                   Route::get('', [ScheduleController::class, 'show'])->middleware('can:is-service-lead,service');
+                   Route::get('export', [ScheduleController::class, 'export'])->middleware('can:is-service-lead,service');
+                   Route::delete('', [ScheduleController::class, 'destroy'])->middleware('can:is-service-lead,service');
+                   Route::put('', [ScheduleController::class, 'update'])->middleware('can:is-service-lead,service');
                });
            });
        });
@@ -94,8 +93,8 @@ Route::middleware('auth:api')->group(function(){
       Route::group(['prefix' => '{shift:id}'], function(){
          Route::group(['prefix' => 'users'], function(){
            Route::group(['prefix' => '{user:id}'], function(){
-                Route::post('', [ShiftController::class, 'associateNurseToShift']);
-                Route::delete('', [ShiftController::class, 'disassociateNurseToShift']);
+                Route::post('', [ShiftController::class, 'associateNurseToShift'])->middleware('can:is-service-lead,service');
+                Route::delete('', [ShiftController::class, 'disassociateNurseToShift'])->middleware('can:is-service-lead,service');
            });
          });
       });
@@ -106,13 +105,13 @@ Route::middleware('auth:api')->group(function(){
     */
     Route::get('user-shifts', [ShiftUserController::class, 'index']);
     Route::group(['prefix' => 'swaps'], function(){
-        Route::post('', [SwapController::class, 'store']);
-        Route::get('proposed-to-user', [SwapController::class, 'swapsProposedToUser']);
-        Route::get('user-proposed', [SwapController::class, 'swapsUserIsProposing']);
-        Route::get('history', [SwapController::class, 'swapsHistory']);
+        Route::post('', [SwapController::class, 'store'])->middleware('can:is-not-admin');
+        Route::get('proposed-to-user', [SwapController::class, 'swapsProposedToUser'])->middleware('can:is-not-admin');
+        Route::get('user-proposed', [SwapController::class, 'swapsUserIsProposing'])->middleware('can:is-not-admin');
+        Route::get('history', [SwapController::class, 'swapsHistory'])->middleware('can:is-not-admin');
         Route::group(['prefix' => '{swap}'], function (){
-            Route::patch('approve', [SwapController::class, 'approveSwap']);
-            Route::patch('reject', [SwapController::class, 'rejectSwap']);
+            Route::patch('approve', [SwapController::class, 'approveSwap'])->middleware('can:is-not-admin');
+            Route::patch('reject', [SwapController::class, 'rejectSwap'])->middleware('can:is-not-admin');
         });
     });
 });

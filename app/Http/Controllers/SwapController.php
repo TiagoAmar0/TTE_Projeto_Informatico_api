@@ -14,23 +14,27 @@ use Illuminate\Support\Facades\Mail;
 
 class SwapController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-    }
 
+    /**
+     * Devolve a lista de todas as trocas que o utilizador autenticado está a propor
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+     */
     public function swapsUserIsProposing(){
         return SwapResource::collection(Auth::user()->swapsUserIsProposing()->get());
     }
 
+    /**
+     * Devolve a lista de todas as trocas que estão a ser propostas ao utilizador autenticado
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+     */
     public function swapsProposedToUser(){
         return SwapResource::collection(Auth::user()->swapsProposedToUser()->get());
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Cria um pedido de troca por parte do utilizador autenticado
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
     {
@@ -43,66 +47,65 @@ class SwapController extends Controller
             'swaps.*.rest' => ['required', 'boolean']
         ]);
 
-        $shift_user = ShiftUser::findOrFail($request->user_shift['id']);
+        $shiftUser = ShiftUser::findOrFail($request->user_shift['id']);
 
         $data = [];
         foreach ($request->swaps as $swap){
-            $proposed_swap_shift_user = ShiftUser::findOrFail($swap['shift_user_id']);
+            $proposedSwapShiftUser = ShiftUser::findOrFail($swap['shift_user_id']);
 
-            // Verificações de integridade
+            // Caso seja uma troca indireta (turno por folga)
             if($swap['rest']){
-                // Verificar se as datas batem certo
-                if($proposed_swap_shift_user->date === $shift_user->date)
+                if($proposedSwapShiftUser->date === $shiftUser->date)
                     return response()->json([
                         'message' => 'Inputs inválidos',
                     ], 422);
 
-                // Verificar se o enfermeiro a que se pede a troca está de folga
+                // Verificar se o enfermeiro a quem se propõe a troca está de folga
                 $exists = ShiftUser::query()
-                    ->where('date', $shift_user->date)
+                    ->where('date', $shiftUser->date)
                     ->where('user_id', $swap['user_id'])
                     ->exists();
 
+                // Se existir um turno alocado a esse utilizador, envia erro
                 if($exists)
                     return response()->json([
                         'message' => 'Input inválidos'
                     ], 422);
 
                 // Verificar se o utilizador a pedir troca tem turnos no dia em que pretende pagar
+                // Se sim, enviar erro
                 $exists = ShiftUser::query()
                     ->where('user_id', Auth::id())
-                    ->where('date', $proposed_swap_shift_user->date)
+                    ->where('date', $proposedSwapShiftUser->date)
                     ->exists();
 
                 if($exists)
                     return response()->json([
                         'message' => 'Inputs inválidos',
-                        'date' => $proposed_swap_shift_user->date
+                        'date' => $proposedSwapShiftUser->date
                     ], 422);
 
 
                 $data[] = [
                     'proposing_user_id' => Auth::id(),
                     'target_user_id' => $swap['user_id'],
-                    'target_shift_user' => $shift_user->id,
+                    'target_shift_user' => $shiftUser->id,
                     'payment_shift_user' => $swap['shift_user_id'],
                     'direct' => false,
                 ];
 
             } else {
-                // Verificações de integridade
-
                 // Verificar se a data do turno a propor é igual ao atual
-                if($proposed_swap_shift_user->date !== $shift_user->date)
+                if($proposedSwapShiftUser->date !== $shiftUser->date)
                     return response()->json([
-                        'message' => 'Inputs inválidos2'
+                        'message' => 'Inputs inválidos'
                     ], 422);
 
                 $data[] = [
                     'proposing_user_id' => Auth::id(),
                     'target_user_id' => $swap['user_id'],
-                    'target_shift_user' => $shift_user->id,
-                    'payment_shift_user' => $proposed_swap_shift_user->id,
+                    'target_shift_user' => $shiftUser->id,
+                    'payment_shift_user' => $proposedSwapShiftUser->id,
                     'direct' => true,
                 ];
             }
@@ -117,23 +120,24 @@ class SwapController extends Controller
     }
 
     /**
-     * Aprovar troca de turno
+     * Aprova um pedido de troca
      * @param Swap $swap
      * @return \Illuminate\Http\JsonResponse
      */
     public function approveSwap(Swap $swap){
-        $target_shift_user = ShiftUser::query()->findOrFail($swap->target_shift_user);
-        $payment_shift_user = ShiftUser::query()->findOrFail($swap->payment_shift_user);
+        $targetShiftUser = ShiftUser::query()->findOrFail($swap->target_shift_user);
+        $paymentShiftUser = ShiftUser::query()->findOrFail($swap->payment_shift_user);
 
-        // Trocar diretamente os turnos
-        $target_shift_user->update([
+        // Trocar os turnos
+        $targetShiftUser->update([
             'user_id' => $swap->target_user_id
         ]);
 
-        $payment_shift_user->update([
+        $paymentShiftUser->update([
             'user_id' => $swap->proposing_user_id
         ]);
 
+        // Mudar o estado da troca para aceite
         $swap->update([
             'status' => 'accepted'
         ]);
@@ -145,27 +149,37 @@ class SwapController extends Controller
             ->where('status', 'pending')
             ->delete();
 
-        $proposing_user = $swap->proposingUser;
-        $target_user = $swap->targetUser;
+        $proposingUser = $swap->proposingUser;
+        $targetUser = $swap->targetUser;
 
         $date = $swap->targetShiftUser->date;
 
-        $message = "$target_user->name aceitou a sua proposta de troca para dia $date";
+
+        // Enviar notificação email a informar que a troca foi aceite
+        $message = "$targetUser->name aceitou a sua proposta de troca para dia $date";
         $subject = "Troca aceite";
 
-        Mail::to($proposing_user->email)->send(new SendSwapNotificationEmail($message, $subject));
+        Mail::to($proposingUser->email)->send(new SendSwapNotificationEmail($message, $subject));
 
         return response()->json([
             'message' => 'A sua troca foi aprovada',
         ]);
     }
 
+    /**
+     * Rejeita um pedido de troca
+     * @param Swap $swap
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function rejectSwap(Swap $swap){
+        // Atualiza a troca para rejeitada
         $swap->update([
             'status' => 'rejected'
         ]);
 
         $user = $swap->proposingUser;
+
+        // Caso todos os pedidos de troca do utilizador para um dado turno forem rejeitos, envia notificação email a notificar
         if(!$user->swapsUserIsProposing()->where('target_shift_user', $swap->target_shift_user)->whereNot('status', 'rejected')->count()){
             $date = $swap->targetShiftUser->date;
             $shift = $swap->targetShiftUser->shift->description;
@@ -180,9 +194,13 @@ class SwapController extends Controller
         ]);
     }
 
+    /**
+     * Devolve o histórico de todas as trocas efetuadas pelo utilizador autenticado
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+     */
     public function swapsHistory(){
 
-        $accepted_swaps = Swap::query()
+        $acceptedSwaps = Swap::query()
             ->where('status', 'accepted')
             ->where(function($query) {
                 $query->where('target_user_id', Auth::id());
@@ -190,6 +208,6 @@ class SwapController extends Controller
             })
             ->get();
 
-        return SwapResource::collection($accepted_swaps);
+        return SwapResource::collection($acceptedSwaps);
     }
 }

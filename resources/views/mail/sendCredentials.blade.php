@@ -10,6 +10,6 @@
 <body>
     <h3>{{ $txt }}</h3>
     <br>
-    <a href="{{ $reset_url }}">Entrar na plataforma</a>
+    <a href="{{ $resetURL }}">Entrar na plataforma</a>
 </body>
 </html>

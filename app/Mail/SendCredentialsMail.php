@@ -16,7 +16,7 @@ class SendCredentialsMail extends Mailable
      * Create a new message instance.
      */
     public function __construct(
-        public string $reset_url,
+        public string $resetURL,
         public string $txt
     ) {}
 

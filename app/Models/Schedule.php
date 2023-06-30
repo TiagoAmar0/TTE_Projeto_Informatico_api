@@ -32,7 +32,14 @@ class Schedule extends Model
 
     public function users(): HasManyThrough
     {
-        return $this->hasManyThrough(User::class,Service::class, 'id', 'service_id', 'service_id', 'id');
+        return $this->hasManyThrough(
+            User::class,
+            Service::class,
+            'id',
+            'service_id',
+            'service_id',
+            'id'
+        );
     }
 
     public function shifts(): HasManyThrough

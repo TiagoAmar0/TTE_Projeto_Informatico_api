@@ -16,6 +16,10 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    /**
+     * Devolve a informação relativa ao utilizador autenticado
+     * @return JsonResponse
+     */
     public function me(): JsonResponse
     {
         return response()->json([
@@ -23,17 +27,11 @@ class AuthController extends Controller
         ]);
     }
 
-    private function passportAuthenticationData($username, $password){
-        return [
-            'grant_type' => 'password',
-            'client_id' => config('auth.CLIENT_ID'),
-            'client_secret' => config('auth.CLIENT_SECRET'),
-            'username' => $username,
-            'password' => $password,
-            'scope' => ''
-        ];
-    }
-
+    /**
+     * Verifica as credenciais do utilizador e autentica-o através do Laravel Passport
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function login(Request $request): JsonResponse
     {
         $request->validate([
@@ -42,6 +40,7 @@ class AuthController extends Controller
         ]);
 
         try {
+            // Faz o pedido ao laravel passport
             request()->request->add($this->passportAuthenticationData($request->email, $request->password));
             $request = Request::create(config('auth.PASSPORT_SERVER_URL') . '/oauth/token', 'POST');
             $response = Route::dispatch($request);
@@ -54,6 +53,10 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * Remove os tokens de autenticação associados ao utilizador
+     * @return JsonResponse
+     */
     public function logout(){
         Auth::user()->tokens()->delete();
 
@@ -62,6 +65,11 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Altera a password do utilizador autenticado
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function changePassword(Request $request){
         $request->validate([
             'current_password' => 'required|current_password',
@@ -77,6 +85,12 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Gera um token que vai ser utilizado para recuperar o acesso à conta
+     * Envia um email com um link + token para o utilizador redefinir a sua password
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function forgotPassword(Request $request){
         $request->validate([
             'email' => 'required|email'
@@ -85,7 +99,10 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if($user){
+            // Gerar token (string random 64 caracteres aleatórios)
             $token = Str::random(64);
+
+            // Adicionar ou atualizar o registo na tabela de password resets, associando o token ao utilizador
             DB::table('password_reset_tokens')->updateOrInsert([
                 'email' => $request->email,
             ],
@@ -94,8 +111,9 @@ class AuthController extends Controller
                 'created_at' => now(),
             ]);
 
-            $reset_url = config('app.frontend_url') . 'reset-password?token=' . $token;
-            Mail::to($request->email)->send(new SendResetPasswordEmail($reset_url, 'Clique na ligação abaixo para recuperar a sua senha'));
+            // Enviar email com o link que permite fazer a recuperação da conta
+            $resetURL = config('app.frontend_url') . 'reset-password?token=' . $token;
+            Mail::to($request->email)->send(new SendResetPasswordEmail($resetURL, 'Clique na ligação abaixo para recuperar a sua senha'));
         }
 
         return response()->json([
@@ -103,31 +121,41 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Recebe o token de recuperação da conta e a nova password a definir
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function resetPassword(Request $request){
         $request->validate([
             'password' => 'required|confirmed|min:8',
             'token' => 'required'
         ]);
 
-        $reset_request = DB::table('password_reset_tokens')
+        // Verificar se o token é válido
+        $resetRequest = DB::table('password_reset_tokens')
             ->where('token', $request->token)
             ->first();
 
-        if(!$reset_request){
+        if(!$resetRequest){
             return response()->json([
                 'message' => 'O pedido é inválido'
             ], 400);
         }
 
-        $user = User::where('email', $reset_request->email)->first();
+        // Verificar se o email está associado a um utilizador
+        $user = User::where('email', $resetRequest->email)->first();
         if(!$user){
             return response()->json([
                 'message' => 'O pedido é inválido'
             ], 400);
         }
 
+        // Atualizar a password do utilizador
         $user->password = Hash::make($request->password);
         $user->save();
+
+        // Descartar token utilizado
         DB::table('password_reset_tokens')
             ->where('token', $request->token)->delete();
 
@@ -135,4 +163,22 @@ class AuthController extends Controller
             'message' => 'A senha foi atualizada'
         ]);
     }
+
+    /**
+     * Gera o objeto que vai interagir com o serviço Passport para autenticação
+     * @param $username
+     * @param $password
+     * @return array
+     */
+    private function passportAuthenticationData($username, $password){
+        return [
+            'grant_type' => 'password',
+            'client_id' => config('auth.CLIENT_ID'),
+            'client_secret' => config('auth.CLIENT_SECRET'),
+            'username' => $username,
+            'password' => $password,
+            'scope' => ''
+        ];
+    }
+
 }
