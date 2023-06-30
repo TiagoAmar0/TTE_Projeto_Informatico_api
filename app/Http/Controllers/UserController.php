@@ -7,6 +7,7 @@ use App\Mail\SendCredentialsMail;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -14,13 +15,20 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function index(): JsonResponse
+    /**
+     * Devolve a lista de todos os utilizadores
+     * @return AnonymousResourceCollection
+     */
+    public function index(): AnonymousResourceCollection
     {
-        return response()->json([
-           'data' => UserResource::collection(User::all())
-        ]);
+        return UserResource::collection(User::all());
     }
 
+    /**
+     * Adiciona um novo utilizador
+     * @param Request $request
+     * @return UserResource
+     */
     public function store(Request $request){
         $request->validate([
             'name' => 'required|string',
@@ -28,7 +36,7 @@ class UserController extends Controller
             'type' => ['required','string', Rule::in(['nurse', 'lead-nurse', 'admin'])]
         ]);
 
-        // Create user
+        // Cria o registo do utilizador
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -37,27 +45,38 @@ class UserController extends Controller
             'type' => $request->type
         ]);
 
+        // Gera um token
         $token = Str::random(64);
+
+        // Cria o registo para fazer a definição da password
         DB::table('password_reset_tokens')->insert([
             'email' => $request->email,
             'token' => $token,
             'created_at' => now()
         ]);
 
-        $reset_url = config('app.frontend_url') . 'reset-password?token=' . $token;
-        Mail::to($request->email)->send(new SendCredentialsMail($reset_url, "Clique na ligação abaixo para aceder à plataforma"));
+        // Envia o email para o utilizador de modo a que possa definir a sua password
+        $resetURL = config('app.frontend_url') . 'reset-password?token=' . $token;
+        Mail::to($request->email)->send(new SendCredentialsMail($resetURL, "Clique na ligação abaixo para aceder à plataforma"));
 
-        return response()->json([
-            'data' => new UserResource($user)
-        ]);
+        return new UserResource($user);
     }
 
+    /**
+     * Devolve o registo de um utilizador específico
+     * @param User $user
+     * @return UserResource
+     */
     public function show(User $user){
-        return response()->json([
-            'data' => new UserResource($user)
-        ]);
+        return new UserResource($user);
     }
 
+    /**
+     * Atualiza os dados de um utilizador
+     * @param User $user
+     * @param Request $request
+     * @return UserResource
+     */
     public function update(User $user, Request $request){
         $request->validate([
             'name' => 'required|string',
@@ -70,25 +89,28 @@ class UserController extends Controller
         $user->type = $request->type;
         $user->save();
 
-        return response()->json([
-            'data' => new UserResource($user)
-        ]);
+        return new UserResource($user);
     }
 
+    /**
+     * Elimina um utilizador
+     * @param User $user
+     * @return UserResource|JsonResponse
+     */
     public function destroy(User $user){
+        // Envia erro caso o utilizador tenha um serviço associado
         if($user->service){
             return response()->json([
                 'message' => 'Não é possível apagar um enfermeiro com serviço associado'
             ], 422);
         }
 
+        // Apaga os tokens do utilizador e os seus password resets
         $user->tokens()->delete();
         DB::table('password_reset_tokens')->where('email', $user->email)->delete();
         $user->delete();
 
-        return response()->json([
-            'data' => new UserResource($user)
-        ]);
+        return new UserResource($user);
     }
 
 

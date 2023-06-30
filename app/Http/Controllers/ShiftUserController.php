@@ -6,13 +6,17 @@ use App\Http\Resources\ShiftUserResource;
 use App\Models\ShiftUser;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ShiftUserController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Lista todas as alocações de turnos do utilizador autenticado num dado dia
+     * Utilizado na vista das trocas
+     * @param Request $request
+     * @return JsonResponse
      */
     public function index(Request $request)
     {
@@ -22,7 +26,7 @@ class ShiftUserController extends Controller
 
         $user = Auth::user();
 
-        // Não permitir trocas no próprio dia nem em dias já passados
+        // Não mostrar turnos do dia atual nem de dias passados
         $date = Carbon::createFromFormat('d-m-Y', $request->date)->startOfDay();
         if($date->isToday() || $date->isPast()){
             return response()->json([
@@ -31,27 +35,31 @@ class ShiftUserController extends Controller
         }
 
         $date = $date->format('Y-m-d');
-        $shift_user = $user->shiftUsers()
+
+        // Query que vai buscar todas as alocações em horários publicados da respetiva data
+        $shiftUser = $user->shiftUsers()
             ->whereHas('schedule', function ($query){
               $query->where('draft', false);
             })
             ->where('date', $date)
             ->first();
 
-        if(!$shift_user)
+        if(!$shiftUser)
             return response()->json([
                'data' => []
             ]);
 
-        $available_swaps = [];
-        $user_ids = [];
+        $availableSwaps = [];
+        $userIDs = [];
 
-        // Selecionar os turnos alocados a outros enfermeiros
-        $shift_users = ShiftUser::query()
-            ->where(function($q) use ($shift_user, $date){
-                $q->where('schedule_id', $shift_user->schedule_id);
+        // Selecionar os turnos alocados a outros enfermeiros do mesmo serviço da respetida data
+        // Não seleciona os turnos alocados do utilizador atual
+        // Não seleciona as alocações do mesmo turno
+        $shiftUsers = ShiftUser::query()
+            ->where(function($q) use ($shiftUser, $date){
+                $q->where('schedule_id', $shiftUser->schedule_id);
                 $q->where('user_id', '!=' ,Auth::id());
-                $q->where('shift_id', '!=', $shift_user->shift_id);
+                $q->where('shift_id', '!=', $shiftUser->shift_id);
                 $q->where('date', $date);
                 $q->where('date', ">=", Carbon::now()->startOfDay()->format('Y-m-d'));
             })
@@ -59,9 +67,9 @@ class ShiftUserController extends Controller
             ->with(['user', 'shift'])
             ->get();
 
-        // Criar as trocas diretas no mesmo dia
-        foreach ($shift_users as $su){
-            $available_swaps[] = [
+        // Criar o array com as possíveis trocas diretas (trocas de turno por turno no mesmo dia)
+        foreach ($shiftUsers as $su){
+            $availableSwaps[] = [
                 'shift_user_id' => $su['id'],
                 'user_id' => $su['user_id'],
                 'user_name' => $su['user']['name'],
@@ -72,30 +80,33 @@ class ShiftUserController extends Controller
                 'rest' => false
             ];
 
-            $user_ids[$su['user_id']] =  $su['user']['name'];
+            $userIDs[$su['user_id']] =  $su['user']['name'];
         }
 
-        // Obter os enfermeiros que estão de folga nesse dia
+        // Obter os enfermeiros que estão de folga na data escolhida
         $users_resting_in_date = User::query()
             ->where('service_id', Auth::user()->service->id)
             ->whereNot('id', Auth::id())
-            ->whereDoesntHave('shiftUsers', function($query) use ($shift_user, $date){
-                $query->where('schedule_id', $shift_user->schedule_id);
+            ->whereDoesntHave('shiftUsers', function($query) use ($shiftUser, $date){
+                $query->where('schedule_id', $shiftUser->schedule_id);
                 $query->where('date', $date);
             })
             ->pluck('id')->toArray();
 
 
-        // Obter dias em que pode pagar a troca da folga
-        $shift_users = ShiftUser::query()
+        // Obter os dias em que os enfermeiro pode pagar a troca
+        // Seleciona os dias em que os enfermeiros que folgam na data estão a trabalhar e o enfermeiro autenticado está de folga
+        $shiftUsers = ShiftUser::query()
             ->whereIn('user_id', $users_resting_in_date)
             ->where('date', '>', Carbon::now()->startOfDay()->format('Y-m-d'))
             ->whereNotIn('date', ShiftUser::query()->where('user_id', Auth::id())->pluck('date'))
             ->whereNotIn('id', $user->swapsUserIsProposing()->pluck('payment_shift_user')->toArray())
             ->get();
 
-        foreach ($shift_users as $su){
-            $available_swaps[] = [
+
+        // Cria o array das trocas 'indiretas' (trocas que requerem pagamento)
+        foreach ($shiftUsers as $su){
+            $availableSwaps[] = [
                 'shift_user_id' => $su['id'],
                 'user_id' => $su['user_id'],
                 'user_name' => $su['user']['name'],
@@ -106,30 +117,30 @@ class ShiftUserController extends Controller
                 'rest' => true
             ];
 
-            $user_ids[$su['user_id']] =  $su['user']['name'];
+            $userIDs[$su['user_id']] =  $su['user']['name'];
         }
 
-        $shift_user->load([
+        $shiftUser->load([
             'shift'
         ]);
 
         return response()->json([
-            'user_shift' => new ShiftUserResource($shift_user),
-            'available_swaps' => array_values($available_swaps) ?: [],
-            'user_ids' => $user_ids
+            'user_shift' => new ShiftUserResource($shiftUser),
+            'available_swaps' => array_values($availableSwaps) ?: [],
+            'user_ids' => $userIDs
         ]);
     }
 
 
     /**
-     * Display the specified resource.
+     * Devolve o registo de uma alocação de um turno a um utilizador
      */
-    public function show(ShiftUser $shift_user)
+    public function show(ShiftUser $shiftUser)
     {
-        $shift_user->load([
+        $shiftUser->load([
             'user',
             'shift'
         ]);
-        return new ShiftUserResource($shift_user);
+        return new ShiftUserResource($shiftUser);
     }
 }

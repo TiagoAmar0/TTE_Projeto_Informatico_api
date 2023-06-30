@@ -12,18 +12,27 @@ use Illuminate\Http\Request;
 
 class ShiftController extends Controller
 {
+    /**
+     * Associa um enfermeiro a um turno
+     * @param Shift $shift
+     * @param User $user
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function associateNurseToShift(Shift $shift, User $user, Request $request): JsonResponse
     {
         $request->validate([
             'date' => ['required', 'date'],
         ]);
 
+        // Caso o utilizador já tenha um turno associado ao dia
         if($user->shifts()->wherePivot('date', $request->date)->exists()){
             return response()->json([
                 'message' => 'O utilizador já tem um turno associado nesse dia'
             ], 422);
         }
 
+        // Enviar erro caso o utilizador não pertença ao serviço ao qual o turno está associado
         if(!$user->service || !$user->service->id != $shift->service->id){
             return response()->json([
                 'message' => 'O utilizador não pertence ao serviço do turno'
@@ -37,6 +46,13 @@ class ShiftController extends Controller
         ]);
     }
 
+    /**
+     * Desassocia um utilizador a um dado turno num dado dia
+     * @param Shift $shift
+     * @param User $user
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function disassociateNurseToShift(Shift $shift, User $user, Request $request): JsonResponse
     {
         $request->validate([
@@ -50,9 +66,15 @@ class ShiftController extends Controller
         ]);
     }
 
+    /**
+     * Lista todos os turnos de um serviço
+     * @param Service $service
+     * @return JsonResponse
+     */
     public function index(Service $service){
         $shifts = $service->shifts()->orderBy('name')->get();
 
+        // Calcula quais os momentos de um dia que não estão cobertos por um turno
         $intervalsNotCovered = $this->checkDayIntervalsWithoutShifts($shifts);
 
         return response()->json([
@@ -61,10 +83,23 @@ class ShiftController extends Controller
         ]);
     }
 
+    /**
+     * Devolve o registo de um dado turno
+     * @param Service $service
+     * @param Shift $shift
+     * @return ShiftResource
+     */
     public function show(Service $service, Shift $shift){
         return new ShiftResource($shift);
     }
 
+    /**
+     * Atualiza os dados de um turno de um serviço
+     * @param Service $service
+     * @param Shift $shift
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function update(Service $service, Shift $shift, Request $request){
         $request->validate([
             'name' => 'required',
@@ -74,21 +109,24 @@ class ShiftController extends Controller
             'nurses_qty' => ['required', 'numeric', 'min:0'],
         ]);
 
-        $start_hour = Carbon::createFromFormat('H:i', $request->start);
-        $end_hour = Carbon::createFromFormat('H:i', $request->end);
+        $startHour = Carbon::createFromFormat('H:i', $request->start);
+        $endHour = Carbon::createFromFormat('H:i', $request->end);
 
-        // Caso seja um turno que vai de um dia para o outro
-        if($start_hour->greaterThan($end_hour))
-            $end_hour->addDay();
+        // Caso seja um turno que vai de um dia para o outro, adiciona um dia para calcular o total de minutos do turno
+        if($startHour->greaterThan($endHour))
+            $endHour->addDay();
 
-        $minutes = $start_hour->diffInMinutes($end_hour);
-        // Validar se o formato da duração está correto
+        // Calcular total de minutos do turno
+        $minutes = $startHour->diffInMinutes($endHour);
+
+        // Validar se o turno tem duração ≥ 0
         if($minutes <= 0){
             return response()->json([
                 'message' => 'Duração do turno inválida'
             ], 422);
         }
 
+        // Atualizar turno
         $shift->update([
             'name' => $request->name,
             'description' => $request->description,
@@ -105,6 +143,12 @@ class ShiftController extends Controller
         ]);
     }
 
+    /**
+     * Guarda um novo turno de um serviço
+     * @param Service $service
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function store(Service $service, Request $request){
         $request->validate([
             'name' => 'required',
@@ -114,15 +158,15 @@ class ShiftController extends Controller
             'nurses_qty' => ['required', 'numeric', 'min:0'],
         ]);
 
-        $start_hour = Carbon::createFromFormat('H:i', $request->start);
-        $end_hour = Carbon::createFromFormat('H:i', $request->end);
+        $startHour = Carbon::createFromFormat('H:i', $request->start);
+        $endHour = Carbon::createFromFormat('H:i', $request->end);
 
-        // Caso seja um turno que vai de um dia para o outro
-        if($start_hour->greaterThan($end_hour))
-            $end_hour->addDay();
+        // Caso seja um turno que vai de um dia para o outro, adiciona um dia para calcular o total de minutos
+        if($startHour->greaterThan($endHour))
+            $endHour->addDay();
 
-        $minutes = $start_hour->diffInMinutes($end_hour);
-        // Validar se o formato da duração está correto
+        $minutes = $startHour->diffInMinutes($endHour);
+        // Enviar erro caso a duração do turno seja ≤ 0
         if($minutes <= 0){
             return response()->json([
                 'message' => 'Duração do turno inválida'
@@ -145,7 +189,14 @@ class ShiftController extends Controller
         ]);
     }
 
+    /**
+     * Eliminar os dados de um turno
+     * @param Service $service
+     * @param Shift $shift
+     * @return JsonResponse
+     */
     public function destroy(Service $service, Shift $shift){
+        // Enviar erro caso já existam registos associados ao turno
         if($shift->shiftUsers()->exists()){
             return response()->json([
                 'message' => 'Este turno tem horários atribuídos'
@@ -159,10 +210,16 @@ class ShiftController extends Controller
         ]);
     }
 
-    private function checkDayIntervalsWithoutShifts($shifts)
+    /**
+     * Calcula os intervalos de um dia que não estão cobertos por um turno
+     * @param $shifts
+     * @return array
+     */
+    private function checkDayIntervalsWithoutShifts($shifts): array
     {
         $coveredIntervals = [];
 
+        // Cria a matriz com os intervalos cobertos pelos turnos definidos
         foreach ($shifts as $shift) {
             $start = Carbon::createFromFormat('H:i:s', $shift['start'])->startOfMinute();
             $end = Carbon::createFromFormat('H:i:s', $shift['end'])->addMinute()->startOfMinute();
@@ -175,15 +232,19 @@ class ShiftController extends Controller
 
         $intervalsNotCovered = [];
 
-        usort($coveredIntervals, function ($a, $b) {
-            return $a[0] <=> $b[0];
+        // Ordena os intervalos cobertos por ordem
+        usort($coveredIntervals, function ($x, $y) {
+            return $x[0] <=> $y[0];
         });
 
+
+        // Itera os intervalos cobertos e valida com o intervalo que vai do início ao fim do dia
         $lastEnd = $startOfDay;
         foreach ($coveredIntervals as $interval) {
             $start = $interval[0];
             $end = $interval[1];
 
+            // Adiciona intervalo descoberto aos intervalos não cobertos
             if ($start->greaterThan($lastEnd)) {
                 $intervalsNotCovered[] = [$lastEnd, $start];
             }
@@ -191,10 +252,12 @@ class ShiftController extends Controller
             $lastEnd = max($lastEnd, $end);
         }
 
+        // Se o tempo mais tarde do dia não corresponder ao final do dia, adiciona o intervalo dessa hora até ao fim do dia
         if ($lastEnd->lessThan($endOfDay)) {
             $intervalsNotCovered[] = [$lastEnd, $endOfDay];
         }
 
+        // Mapeia os intervalos não cobertos para uma matriz com as horas em formato hora:minuto
         return array_map(function ($interval) {
             return [
                 $interval[0]->format('H:i'),

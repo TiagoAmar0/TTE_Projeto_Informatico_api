@@ -15,31 +15,50 @@ use Illuminate\Support\Facades\DB;
 class ScheduleController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Devolve a listagem de horários de um serviço
      */
     public function index(Service $service)
     {
         return ScheduleResource::collection($service->schedules()->get());
     }
 
+    /**
+     * Adiciona um novo horário a um serviço
+     * @param Service $service
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(Service $service, Request $request)
     {
+        // Valida as diferentes restrições dos inputs
         $this->validateStoreRequest($request, $service);
+
+        // Cria o objecto Schedule
         $schedule = $this->createNewSchedule($service, $request);
+
+        // Popula o schedule com objetos ShiftUser
         $inserted = $this->createShiftUsers($schedule, $request);
+
+        // Caso o horário esteja vazio e não seja ‘draft’, envia erro
         if(!$inserted && !$request['draft']) {
             $schedule->delete();
             return response()->json([
                'message' => 'Não pode submeter um horário sem registos'
             ], 422);
         }
+
         return response()->json([
             'message' => $request['draft'] ? 'Rascunho guardado' : 'Horário criado com sucesso',
             'data' => new ScheduleResource($schedule)
         ]);
     }
 
-
+    /**
+     * Valida os parametros de entrada da função store
+     * @param Request $request
+     * @param Service $service
+     * @return void
+     */
     private function validateStoreRequest(Request $request, Service $service){
         $request->validate([
             'draft' => ['required', 'boolean'],
@@ -51,16 +70,27 @@ class ScheduleController extends Controller
             'data.*.date_formatted' => ['required'],
         ]);
 
+        // Caso não seja ‘draft’, verificar se já existe um horário publicado que se sobreponha a este
+        // Se sim, envia erro visto que não podem existir horários sobrepostos
         if (!$request->draft) {
-            $this->verifyIfPublishedScheduleExists($request, $service);
+            $this->verifyIfAlreadyExistsPublishedScheduleInDateRange($request, $service);
         }
 
-        $this->verifyIfRequestDatesAreUnique($request);
+        // Verificar se não existem datas duplicadas nos inputs
+        // Verificar se cada utilizador apenas tem ≤ 1 registos para cada dia (1 turno ou folga)
+        $this->verifyIfThereIsNotDuplicatedDates($request);
 
-        $this->verifyIfUsersAreValid($request, $service);
+        // Verifica se todos os utilizadores são válidos, ou seja, se são utilizadores do serviço
+        $this->verifyIfUsersBelongToService($request, $service);
     }
 
-    private function verifyIfPublishedScheduleExists(Request $request, Service $service){
+    /**
+     * Verifica se já existe um horário publicado que coincida com alguma data do horário a guardar
+     * @param Request $request
+     * @param Service $service
+     * @return void
+     */
+    private function verifyIfAlreadyExistsPublishedScheduleInDateRange(Request $request, Service $service){
         $exists = Schedule::query()
             ->where('service_id', $service->id)
             ->whereBetween('start', [$request->date_range[0], $request->date_range[1]])
@@ -72,7 +102,12 @@ class ScheduleController extends Controller
         }
     }
 
-    private function verifyIfRequestDatesAreUnique(Request $request)
+    /**
+     * Verifica se não existem registos de datas duplicadas
+     * @param Request $request
+     * @return void
+     */
+    private function verifyIfThereIsNotDuplicatedDates(Request $request)
     {
         $days = array_map(function($day){
             return $day['date'];
@@ -83,7 +118,13 @@ class ScheduleController extends Controller
         }
     }
 
-    private function verifyIfUsersAreValid(Request $request, Service $service){
+    /**
+     * Valida se todos os utilizadores a quem se quer atribuir turnos pertencem ao serviço associado ao horário
+     * @param Request $request
+     * @param Service $service
+     * @return void
+     */
+    private function verifyIfUsersBelongToService(Request $request, Service $service){
         $service_users = $service->users()->pluck('id')->toArray();
         foreach ($request->data as $day) {
             foreach ($day['nurses'] as $nurse){
@@ -94,6 +135,12 @@ class ScheduleController extends Controller
         }
     }
 
+    /**
+     * Cria e devolve o objeto do Schedule
+     * @param Service $service
+     * @param Request $request
+     * @return Model
+     */
     private function createNewSchedule(Service $service, Request $request): Model
     {
         return $service->schedules()->create([
@@ -103,10 +150,17 @@ class ScheduleController extends Controller
         ]);
     }
 
+    /**
+     * Cria os objetos que associam os utilizadores e turnos ao horário em questão
+     * @param Schedule $schedule
+     * @param Request $request
+     * @return bool
+     */
     public function createShiftUsers(Schedule $schedule, Request $request): bool
     {
         $data = [];
 
+        // Percorre os dias do range de datas e adiciona a um array
         foreach ($request->data as $day) {
             foreach ($day['nurses'] as $nurse) {
                 if ($nurse['shift'] && $nurse['id']) {
@@ -123,14 +177,17 @@ class ScheduleController extends Controller
         if(!count($data))
             return false;
 
+        // Mass insert de todos os registos do horário
         ShiftUser::query()->insert($data);
         return true;
-
     }
 
 
     /**
-     * Display the specified resource.
+     * Devolve o registo de um horário com os dados dos utilizadores e turnos respetivos
+     * @param Service $service
+     * @param Schedule $schedule
+     * @return ScheduleResource
      */
     public function show(Service $service, Schedule $schedule)
     {
@@ -145,7 +202,11 @@ class ScheduleController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Atualiza os registos de um horário e as alocações dos utilizadores aos turnos
+     * @param Service $service
+     * @param Schedule $schedule
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function update(Service $service, Schedule $schedule, Request $request){
         $request->validate([
@@ -158,7 +219,7 @@ class ScheduleController extends Controller
             'data.*.date_formatted' => ['required'],
         ]);
 
-        // Verificar se já existe um horário no intervalo de datas, caso seja publicado
+        // Se o horário for atualizado em estado não ‘draft’ (publicado), verificar se já existem horários publicados que coincidam
         if (!$request->draft) {
             $exists = Schedule::query()
                 ->whereNot('id', $schedule->id)
@@ -171,6 +232,7 @@ class ScheduleController extends Controller
                 ->exists();
 
 
+            // Se existirem, devolve erro
             if ($exists) {
                 return response()->json([
                     'message' => 'Já existem horários definidos neste intervalo de tempo',
@@ -178,23 +240,25 @@ class ScheduleController extends Controller
             }
         }
 
-        // Verificar se as datas são únicas e os utilizadores são válidos
-        $this->verifyIfRequestDatesAreUnique($request);
-        $this->verifyIfUsersAreValid($request, $service);
+        // Verificar se as datas são únicas e se os utilizadores pertencem ao serviço
+        $this->verifyIfThereIsNotDuplicatedDates($request);
+        $this->verifyIfUsersBelongToService($request, $service);
 
         try {
             DB::beginTransaction();
 
+            // Atualizar os dados do horário
             $schedule->start = $request->date_range[0];
             $schedule->end = $request->date_range[1];
             $schedule->draft = $request->draft;
             $schedule->saveOrFail();
             $exists = false;
 
-            // Atualizar ou criar novos shift_users
+            // Atualizar ou criar as associações entre utilizadores e turnos do horário
             foreach ($request->data as $day) {
                 foreach ($day['nurses'] as $nurse) {
                     $date = Carbon::createFromFormat('d/m/Y', $day['date'])->format('Y-m-d');
+                    // Caso o utilizador tenha um turno atribuído, cria ou atualiza o registo
                     if ($nurse['shift'] && $nurse['id']) {
                         $schedule->userShifts()->updateOrCreate([
                             'user_id' => $nurse['id'],
@@ -206,6 +270,7 @@ class ScheduleController extends Controller
                         ]);
                         $exists = true;
                     } else {
+                        // Caso contrário, elimina eventuais alocações para esse utilizador nessa data (está de folga)
                         $schedule->userShifts()
                             ->where('user_id', $nurse['id'])
                             ->where('date', $date)
@@ -213,13 +278,15 @@ class ScheduleController extends Controller
                     }
                 }
 
+                // Caso o horário tenha sido enviado em estado definitivo e esteja vazio, reverte as inserções e atualizações e emite erro
                 if(!$exists && !$request['draft']){
                     DB::rollBack();
                     return response()->json(['message' => 'Não pode lançar um horário sem registos'], 422);
                 }
             }
 
-            // Apagar todos os shift_users fora do range associado ao service
+            // Apaga todos os eventuais registos criados para o horário fora das datas
+            // Acontece quando se altera o range e os dias excluídos tinham dados
             $schedule->userShifts()
                 ->where('date', '<', $schedule->start)
                 ->orWhere('date', '>', $schedule->end)
@@ -236,19 +303,33 @@ class ScheduleController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina o registo de um horário
+     * @param Service $service
+     * @param Schedule $schedule
+     * @return \Illuminate\Http\JsonResponse
      */
     public function destroy(Service $service, Schedule $schedule)
     {
+        // Apagar as alocações de turnos
         $schedule->userShifts()->delete();
+
+        // Apagar o horário
         $schedule->delete();
+
         return response()->json([
             'message' => 'O horário foi eliminado'
         ]);
     }
 
+    /**
+     * Exporta o horário para uma tabela em PDF
+     * @param Service $service
+     * @param Schedule $schedule
+     * @return \Illuminate\Http\Response
+     */
     public function export(Service $service, Schedule $schedule)
     {
+        // Carregar os dados dos utilizadores, turnos e alocações de turnos com o horário
         $schedule->load([
             'userShifts',
             'users',
@@ -257,7 +338,7 @@ class ScheduleController extends Controller
             'userShifts.shift',
         ]);
 
-        $days_of_week = [
+        $daysOfWeek = [
             'Dom',
             'Seg',
             'Ter',
@@ -267,9 +348,11 @@ class ScheduleController extends Controller
             'Sab'
         ];
 
+        // Obter array com as datas que estão entre o início e o fim do horário
         $dates = $this->getDatesInRange($schedule->start, $schedule->end);
         $tableData = [];
 
+        // Percorrer datas e gerar o objeto que permita ser manipulado pela  blade template que vai gerar a tabela
         foreach ($dates as $i => $date){
 
             $dateObject = Carbon::createFromFormat('d/m/Y', $date);
@@ -278,7 +361,8 @@ class ScheduleController extends Controller
                 'date' => $date,
                 'day' => $dateObject->format('d'),
                 'month' => $dateObject->format('M'),
-                'day_of_the_week' => $days_of_week[$dateObject->dayOfWeek],
+                'day_of_the_week' => $daysOfWeek[$dateObject->dayOfWeek],
+                // Mapeia as alocações para um array que contenha o nome do turno e o nome do utilizador que tenha turno alocado na respetiva data
                 'nurses' => $schedule->userShifts->map(function ($user_shift) use ($dateObject) {
                     $shiftDate = Carbon::parse($user_shift->date);
                     if ($shiftDate->isSameDay($dateObject)) {
@@ -291,7 +375,10 @@ class ScheduleController extends Controller
                 })->filter()
             ];
 
+            // Calcular total de enfermeiros alocados no dia
             $tableData[$i]['nurses_total'] = count($tableData[$i]['nurses']);
+
+            // Calcular o total de enfermeiros alocados por turno
             $tableData[$i]['shifts'] = $schedule->shifts->map(function ($shift) use ($tableData, $i) {
                 return [
                     'shift' => $shift->name,
@@ -307,6 +394,7 @@ class ScheduleController extends Controller
         $start = Carbon::parse($schedule->start);
         $end = Carbon::parse($schedule->end);
 
+        // Gerar o PDF através de uma Blade View
         $pdf = Pdf::loadView('exports.scheduleExport', [
             'data' => $tableData,
             'users' => $schedule->users()->orderBy('name')->get(),
@@ -318,9 +406,17 @@ class ScheduleController extends Controller
             'end' => Carbon::parse($schedule->end)->format('d M')
         ])->setPaper('a4', 'landscape');
 
+
+        // Devolve o PDF para download
         return $pdf->download();
     }
 
+    /**
+     * Recebe uma data inicial e uma data final e devolve um array de todas as datas daquele intervalo
+     * @param $start
+     * @param $end
+     * @return array
+     */
     private function getDatesInRange($start, $end) : array
     {
         $startDate = Carbon::parse($start);
