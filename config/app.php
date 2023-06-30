@@ -194,7 +194,6 @@ return [
          */
         App\Providers\AppServiceProvider::class,
         App\Providers\AuthServiceProvider::class,
-        Laravel\Passport\PassportServiceProvider::class,
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
@@ -214,7 +213,6 @@ return [
 
     'aliases' => Facade::defaultAliases()->merge([
         // 'ExampleClass' => App\Example\ExampleClass::class,
-        'Passport' => Laravel\Passport\Facades\Passport::class,
         'PDF' => \Barryvdh\DomPDF\Facade\Pdf::class,
     ])->toArray(),
 ];
