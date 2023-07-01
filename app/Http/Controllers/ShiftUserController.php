@@ -74,7 +74,7 @@ class ShiftUserController extends Controller
                 'user_id' => $su['user_id'],
                 'user_name' => $su['user']['name'],
                 'date' => $su['date'],
-                'day_of_week' => ucfirst(Carbon::createFromFormat('Y-m-d', $su['date'])->minDayName),
+                'day_of_week' => ucfirst(Carbon::createFromFormat('Y-m-d', $su['date'])->shortDayName),
                 'shift_id' => $su['shift_id'],
                 'shift_name' => $su['shift']['description'],
                 'rest' => false
@@ -106,12 +106,16 @@ class ShiftUserController extends Controller
 
         // Cria o array das trocas 'indiretas' (trocas que requerem pagamento)
         foreach ($shiftUsers as $su){
+            $shiftDate = Carbon::createFromFormat('Y-m-d', $su['date']);
+
             $availableSwaps[] = [
                 'shift_user_id' => $su['id'],
                 'user_id' => $su['user_id'],
                 'user_name' => $su['user']['name'],
                 'date' => $su['date'],
-                'day_of_week' => ucfirst(Carbon::createFromFormat('Y-m-d', $su['date'])->minDayName),
+                'day_of_week' => ucfirst($shiftDate->shortDayName),
+                'day' => $shiftDate->day,
+                'month' => $shiftDate->monthName,
                 'shift_id' => $su['shift_id'],
                 'shift_name' => $su['shift']['description'],
                 'rest' => true

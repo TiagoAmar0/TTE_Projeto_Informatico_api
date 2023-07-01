@@ -22,7 +22,7 @@ class ShiftUserResource extends JsonResource
             'shift_id' => $this->shift_id,
             'user_id' => $this->user_id,
             'date' => $carbon->format('d/m/Y'),
-            'day_name' => ucfirst($carbon->minDayName),
+            'day_name' => ucfirst($carbon->shortDayName),
             'day' => $carbon->day,
             'month' => ucfirst($carbon->shortMonthName),
             'user' => new UserResource($this->whenLoaded('user')),
