@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -22,7 +23,13 @@ class ServiceResource extends JsonResource
                 $this->users()
                 ->orderBy('name', 'ASC')
                 ->get()
-            )
+            ),
+            'nursesWithoutService' => UserResource::collection(
+                User::query()
+                    ->whereNull('service_id')
+                    ->where('type', 'nurse')
+                    ->orderBy('name')
+                    ->get())
         ];
     }
 }

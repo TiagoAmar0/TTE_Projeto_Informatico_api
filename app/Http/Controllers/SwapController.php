@@ -50,6 +50,7 @@ class SwapController extends Controller
         $shiftUser = ShiftUser::findOrFail($request->user_shift['id']);
 
         $data = [];
+        $emails = [];
         foreach ($request->swaps as $swap){
             $proposedSwapShiftUser = ShiftUser::findOrFail($swap['shift_user_id']);
 
@@ -109,9 +110,29 @@ class SwapController extends Controller
                     'direct' => true,
                 ];
             }
+
+            if(!isset($emails[$swap['user_id']])){
+                $user = User::findOrFail($swap['user_id']);
+                $emails[$swap['user_id']]['count'] = 1;
+                $emails[$swap['user_id']]['email'] = $user->email;
+            } else {
+                $emails[$swap['user_id']]['count']++;
+            }
+
         }
 
         Swap::query()->insert($data);
+
+        $proposingUser = Auth::user();
+
+        // Enviar emails aos utilizadores que receberam as trocas
+        foreach ($emails as $email){
+            // Enviar notificação email a informar o utilizador que recebeu a proposta de troca
+            $message = "$proposingUser->name enviou um {$email['count']} pedido(s) de troca para $shiftUser->date";
+            $subject = "Novo pedido de troca";
+
+            Mail::to($email['email'])->send(new SendSwapNotificationEmail($message, $subject));
+        }
 
         return response()->json([
             'message' => (count($request->swaps) ? 'Pedidos' : 'Pedido') . ' de troca submetidos',
