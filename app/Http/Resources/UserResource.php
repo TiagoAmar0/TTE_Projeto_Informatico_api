@@ -22,7 +22,7 @@ class UserResource extends JsonResource
             'service' => $this->service ? $this->service->name : null,
             'service_id' => $this->service ? $this->service->id : null,
             'type' => $this->type,
-            'shifts' => ShiftUserResource::collection($this->shiftUsers()->with('shift')->where('date', '>=', Carbon::now()->format('Y-m-d'))->orderBy('date')->get()),
+            'shifts' => ShiftUserResource::collection($this->shiftUsers()->with('shift')->where('date', '>=', Carbon::now()->startOfWeek()->format('Y-m-d'))->orderBy('date')->get()),
             'type_normalized' => match ($this->type) {
                 'admin' => 'Administrador',
                 'lead-nurse' => 'Enfermeiro Chefe',

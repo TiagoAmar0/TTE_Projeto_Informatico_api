@@ -86,20 +86,6 @@ Route::middleware('auth:api')->group(function(){
        });
    });
 
-    /**
-     * Shifts
-     */
-   Route::group(['prefix' => 'shifts'], function(){
-      Route::group(['prefix' => '{shift:id}'], function(){
-         Route::group(['prefix' => 'users'], function(){
-           Route::group(['prefix' => '{user:id}'], function(){
-                Route::post('', [ShiftController::class, 'associateNurseToShift'])->middleware('can:is-service-lead,service');
-                Route::delete('', [ShiftController::class, 'disassociateNurseToShift'])->middleware('can:is-service-lead,service');
-           });
-         });
-      });
-   });
-
    /**
     * Swaps
     */

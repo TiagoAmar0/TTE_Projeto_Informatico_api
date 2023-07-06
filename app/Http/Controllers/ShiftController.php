@@ -13,60 +13,6 @@ use Illuminate\Http\Request;
 class ShiftController extends Controller
 {
     /**
-     * Associa um enfermeiro a um turno
-     * @param Shift $shift
-     * @param User $user
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function associateNurseToShift(Shift $shift, User $user, Request $request): JsonResponse
-    {
-        $request->validate([
-            'date' => ['required', 'date'],
-        ]);
-
-        // Caso o utilizador já tenha um turno associado ao dia
-        if($user->shifts()->wherePivot('date', $request->date)->exists()){
-            return response()->json([
-                'message' => 'O utilizador já tem um turno associado nesse dia'
-            ], 422);
-        }
-
-        // Enviar erro caso o utilizador não pertença ao serviço ao qual o turno está associado
-        if(!$user->service || !$user->service->id != $shift->service->id){
-            return response()->json([
-                'message' => 'O utilizador não pertence ao serviço do turno'
-            ], 422);
-        }
-
-        $user->shifts()->attach($shift, ['date' => $request->date]);
-
-        return response()->json([
-            'message' => 'Turno associado ao enfermeiro'
-        ]);
-    }
-
-    /**
-     * Desassocia um utilizador a um dado turno num dado dia
-     * @param Shift $shift
-     * @param User $user
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function disassociateNurseToShift(Shift $shift, User $user, Request $request): JsonResponse
-    {
-        $request->validate([
-            'date' => ['required', 'date'],
-        ]);
-
-        $user->shifts()->wherePivot('date', $request->date)->wherePivot('shift_id', $shift->id)->delete();
-
-        return response()->json([
-            'message' => 'Turno removido ao enfermeiro'
-        ]);
-    }
-
-    /**
      * Lista todos os turnos de um serviço
      * @param Service $service
      * @return JsonResponse

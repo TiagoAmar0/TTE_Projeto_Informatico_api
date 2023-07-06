@@ -106,6 +106,7 @@ class UserController extends Controller
         }
 
         // Apaga os tokens do utilizador e os seus password resets
+        $user->shiftUsers()->delete();
         $user->tokens()->delete();
         DB::table('password_reset_tokens')->where('email', $user->email)->delete();
         $user->delete();
