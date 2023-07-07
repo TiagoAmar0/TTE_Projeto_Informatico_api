@@ -17,7 +17,7 @@ return [
         'array'   => ':attribute deve ter entre :min e :max itens.',
     ],
     'boolean'              => ':attribute deve ser falso ou verdadeiro',
-    'confirmed'            => 'A confirmação do(a) :attribute não está igual',
+    'confirmed'            => 'A confirmação da password não está igual',
     'date'                 => ':attribute não é uma data válida.',
     'date_format'          => ':attribute não é um formato (:format) válido.',
     'different'            => ':attribute e :other precisam ser diferentes.',

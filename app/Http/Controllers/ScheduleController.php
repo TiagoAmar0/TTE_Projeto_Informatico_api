@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Schedule\StoreScheduleRequest;
 use App\Http\Resources\ScheduleResource;
 use App\Models\Schedule;
 use App\Models\Service;
@@ -28,7 +29,7 @@ class ScheduleController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(Service $service, Request $request)
+    public function store(Service $service, StoreScheduleRequest $request)
     {
         // Valida as diferentes restrições dos inputs
         $this->validateStoreRequest($request, $service);
@@ -60,16 +61,6 @@ class ScheduleController extends Controller
      * @return void
      */
     private function validateStoreRequest(Request $request, Service $service){
-        $request->validate([
-            'draft' => ['required', 'boolean'],
-            'data' => ['required', 'array'],
-            'date_range' => ['required', 'array'],
-            'date_range.*' => ['date'],
-            'data.*.nurses_total' => ['required', 'numeric'],
-            'data.*.date' => ['required'],
-            'data.*.date_formatted' => ['required'],
-        ]);
-
         // Caso não seja ‘draft’, verificar se já existe um horário publicado que se sobreponha a este
         // Se sim, envia erro visto que não podem existir horários sobrepostos
         if (!$request->draft) {
@@ -208,16 +199,7 @@ class ScheduleController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Service $service, Schedule $schedule, Request $request){
-        $request->validate([
-            'draft' => ['required', 'boolean'],
-            'data' => ['required', 'array'],
-            'date_range' => ['required', 'array'],
-            'date_range.*' => ['date'],
-            'data.*.nurses_total' => ['required', 'numeric'],
-            'data.*.date' => ['required'],
-            'data.*.date_formatted' => ['required'],
-        ]);
+    public function update(Service $service, Schedule $schedule, StoreScheduleRequest $request){
 
         // Se o horário for atualizado em estado não ‘draft’ (publicado), verificar se já existem horários publicados que coincidam
         if (!$request->draft) {
@@ -277,12 +259,12 @@ class ScheduleController extends Controller
                             ->delete();
                     }
                 }
+            }
 
-                // Caso o horário tenha sido enviado em estado definitivo e esteja vazio, reverte as inserções e atualizações e emite erro
-                if(!$exists && !$request['draft']){
-                    DB::rollBack();
-                    return response()->json(['message' => 'Não pode lançar um horário sem registos'], 422);
-                }
+            // Caso o horário tenha sido enviado em estado definitivo e esteja vazio, reverte as inserções e atualizações e emite erro
+            if(!$exists && !$request['draft']){
+                DB::rollBack();
+                return response()->json(['message' => 'Não pode lançar um horário sem registos'], 422);
             }
 
             // Apaga todos os eventuais registos criados para o horário fora das datas

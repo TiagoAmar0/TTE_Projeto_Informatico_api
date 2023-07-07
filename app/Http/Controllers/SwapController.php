@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Swaps\StoreSwapRequest;
 use App\Http\Resources\SwapResource;
 use App\Mail\SendResetPasswordEmail;
 use App\Mail\SendSwapNotificationEmail;
@@ -36,17 +37,8 @@ class SwapController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(Request $request)
+    public function store(StoreSwapRequest $request)
     {
-        $request->validate([
-            'user_shift.id' => ['required', 'exists:App\Models\ShiftUser,id'],
-            'swaps' => ['required','array'],
-            'swaps.*.user_id' => ['required', 'exists:App\Models\User,id'],
-            'swaps.*.date' => ['required', 'date'],
-            'swaps.*.shift_user_id' => ['required', 'exists:App\Models\ShiftUser,id'],
-            'swaps.*.rest' => ['required', 'boolean']
-        ]);
-
         $shiftUser = ShiftUser::findOrFail($request->user_shift['id']);
 
         $data = [];

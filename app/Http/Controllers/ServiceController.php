@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Services\StoreServiceRequest;
+use App\Http\Requests\Services\UpdateServiceRequest;
 use App\Http\Resources\ServiceResource;
 use App\Http\Resources\UserResource;
 use App\Models\Service;
@@ -38,11 +40,7 @@ class ServiceController extends Controller
      * @param Request $request
      * @return ServiceResource
      */
-    public function store(Request $request){
-        $request->validate([
-            'name' => ['required', 'unique:services'],
-        ]);
-
+    public function store(StoreServiceRequest $request){
         $service = new Service();
         $service->name = $request->name;
         $service->save();
@@ -56,11 +54,7 @@ class ServiceController extends Controller
      * @param Request $request
      * @return ServiceResource
      */
-    public function update(Service $service, Request $request){
-        $request->validate([
-            'name' => ['required', 'unique:services,name,'.$service->id],
-        ]);
-
+    public function update(Service $service, UpdateServiceRequest $request){
         $service->name = $request->name;
         $service->save();
 

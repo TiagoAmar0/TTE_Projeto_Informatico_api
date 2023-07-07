@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Shifts\StoreShiftRequest;
 use App\Http\Resources\ShiftResource;
 use App\Models\Service;
 use App\Models\Shift;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,15 +46,7 @@ class ShiftController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function update(Service $service, Shift $shift, Request $request){
-        $request->validate([
-            'name' => 'required',
-            'description' => 'required',
-            'start' => ['required', 'date_format:H:i'],
-            'end' => ['required', 'date_format:H:i'],
-            'nurses_qty' => ['required', 'numeric', 'min:0'],
-        ]);
-
+    public function update(Service $service, Shift $shift, StoreShiftRequest $request){
         $startHour = Carbon::createFromFormat('H:i', $request->start);
         $endHour = Carbon::createFromFormat('H:i', $request->end);
 
@@ -95,15 +87,7 @@ class ShiftController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function store(Service $service, Request $request){
-        $request->validate([
-            'name' => 'required',
-            'description' => 'required',
-            'start' => ['required', 'date_format:H:i'],
-            'end' => ['required', 'date_format:H:i'],
-            'nurses_qty' => ['required', 'numeric', 'min:0'],
-        ]);
-
+    public function store(Service $service, StoreShiftRequest $request){
         $startHour = Carbon::createFromFormat('H:i', $request->start);
         $endHour = Carbon::createFromFormat('H:i', $request->end);
 

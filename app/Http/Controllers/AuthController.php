@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Auth\ChangePasswordRequest;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Mail\SendResetPasswordEmail;
 use App\Models\User;
@@ -32,14 +36,9 @@ class AuthController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required',
-            'password' => 'required'
-        ]);
-
-        try {
+       try {
             // Faz o pedido ao laravel passport
             request()->request->add($this->passportAuthenticationData($request->email, $request->password));
             $request = Request::create(config('auth.PASSPORT_SERVER_URL') . '/oauth/token', 'POST');
@@ -70,12 +69,7 @@ class AuthController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function changePassword(Request $request){
-        $request->validate([
-            'current_password' => 'required|current_password',
-            'new_password' => 'required|min:8|confirmed'
-        ]);
-
+    public function changePassword(ChangePasswordRequest $request){
         $user = Auth::user();
         $user->password = Hash::make($request->new_password);
         $user->save();
@@ -91,11 +85,7 @@ class AuthController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function forgotPassword(Request $request){
-        $request->validate([
-            'email' => 'required|email'
-        ]);
-
+    public function forgotPassword(ForgotPasswordRequest $request){
         $user = User::where('email', $request->email)->first();
 
         if($user){
@@ -126,7 +116,7 @@ class AuthController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function resetPassword(Request $request){
+    public function resetPassword(ResetPasswordRequest $request){
         $request->validate([
             'password' => 'required|confirmed|min:8',
             'token' => 'required'

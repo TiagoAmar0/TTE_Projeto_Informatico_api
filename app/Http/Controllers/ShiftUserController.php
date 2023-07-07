@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ShiftUser\IndexShiftUserRequest;
 use App\Http\Resources\ShiftUserResource;
 use App\Models\ShiftUser;
 use App\Models\User;
@@ -18,12 +19,8 @@ class ShiftUserController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function index(Request $request)
+    public function index(IndexShiftUserRequest $request)
     {
-        $request->validate([
-           'date' => 'required'
-        ]);
-
         $user = Auth::user();
 
         // Não mostrar turnos do dia atual nem de dias passados
