@@ -24,10 +24,11 @@ class ServiceResource extends JsonResource
                 ->orderBy('name', 'ASC')
                 ->get()
             ),
+            'serviceHasLead' => $this->users()->where('type', 'lead-nurse')->exists(),
             'nursesWithoutService' => UserResource::collection(
                 User::query()
                     ->whereNull('service_id')
-                    ->where('type', 'nurse')
+                    ->whereNot('type', 'admin')
                     ->orderBy('name')
                     ->get())
         ];

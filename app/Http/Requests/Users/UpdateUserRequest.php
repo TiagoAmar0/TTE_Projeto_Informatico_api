@@ -33,7 +33,7 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'name.required' => 'Tem de preencher o nome',
-            'email.required' => 'em de preencher o e-mail',
+            'email.required' => 'Tem de preencher o e-mail',
             'email.email' => 'O e-mail é inválido',
             'email.unique' => 'Já existe um utilizador com este e-mail associado',
             'type.required' => 'Tem de inserir o tipo de utilizador',
