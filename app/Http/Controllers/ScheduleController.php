@@ -82,11 +82,22 @@ class ScheduleController extends Controller
      * @return void
      */
     private function verifyIfAlreadyExistsPublishedScheduleInDateRange(Request $request, Service $service){
+        $start = $request->date_range[0];
+        $end = $request->date_range[1];
+
         $exists = Schedule::query()
-            ->where('service_id', $service->id)
-            ->whereBetween('start', [$request->date_range[0], $request->date_range[1]])
-            ->orWhereBetween('end', [$request->date_range[0], $request->date_range[1]])
-            ->exists();
+        ->where('service_id', $service->id)
+        ->where('draft', false)
+        ->where(function ($query) use ($start, $end) {
+            $query->where('start', '<=', $start)
+                ->where('end', '>=', $start);
+        })->orWhere(function ($query) use ($start, $end) {
+            $query->where('start', '<=', $end)
+                ->where('end', '>=', $end);
+        })->orWhere(function ($query) use ($start, $end) {
+            $query->where('start', '>=', $start)
+                ->where('end', '<=', $end);
+        })->exists();
 
         if ($exists) {
             abort(422, 'Já existem horários definidos neste intervalo de tempo');
@@ -203,16 +214,21 @@ class ScheduleController extends Controller
 
         // Se o horário for atualizado em estado não ‘draft’ (publicado), verificar se já existem horários publicados que coincidam
         if (!$request->draft) {
+            $start = $request->date_range[0];
+            $end = $request->date_range[1];
             $exists = Schedule::query()
                 ->whereNot('id', $schedule->id)
                 ->where('service_id', $service->id)
-                ->where('draft', false)
-                ->where(function($query) use ($request){
-                    $query->whereBetween('start', [$request->date_range[0], $request->date_range[1]]);
-                    $query->orWhereBetween('end', [$request->date_range[0], $request->date_range[1]]);
-                })
-                ->exists();
-
+                ->where(function ($query) use ($start, $end) {
+                    $query->where('start', '<=', $start)
+                        ->where('end', '>=', $start);
+                })->orWhere(function ($query) use ($start, $end) {
+                    $query->where('start', '<=', $end)
+                        ->where('end', '>=', $end);
+                })->orWhere(function ($query) use ($start, $end) {
+                    $query->where('start', '>=', $start)
+                        ->where('end', '<=', $end);
+                })->exists();
 
             // Se existirem, devolve erro
             if ($exists) {
