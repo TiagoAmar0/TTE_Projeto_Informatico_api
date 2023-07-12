@@ -118,17 +118,44 @@ class ShiftUserController extends Controller
                 'rest' => true
             ];
 
-            $userIDs[$su['user_id']] =  $su['user']['name'];
+//            $userIDs[$su['user_id']] =  $su['user']['name'];
         }
 
         $shiftUser->load([
             'shift'
         ]);
 
+        usort($availableSwaps, function($a, $b) {
+            if ($a['rest'] == $b['rest']) {
+                return strcmp($a['user_name'], $b['user_name']);
+            }
+            return $a['rest'] ? 1 : -1;
+        });
+
+        $users = [];
+
+        foreach ($availableSwaps as $swap){
+            $found = false;
+            foreach ($users as $user) {
+                if ($user['name'] === $swap['user_name']) {
+                    $found = true;
+                    break;
+                }
+            }
+
+            if(!$found){
+                $users[] = [
+                    'name' =>  $swap['user_name'],
+                    'id' =>  $swap['user_id'],
+                ];
+            }
+        }
+
+
         return response()->json([
             'user_shift' => new ShiftUserResource($shiftUser),
             'available_swaps' => array_values($availableSwaps) ?: [],
-            'user_ids' => $userIDs
+            'user_ids' => $users
         ]);
     }
 

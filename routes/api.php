@@ -91,13 +91,13 @@ Route::middleware('auth:api')->group(function(){
     */
     Route::get('user-shifts', [ShiftUserController::class, 'index']);
     Route::group(['prefix' => 'swaps'], function(){
-        Route::post('', [SwapController::class, 'store'])->middleware('can:is-not-admin');
-        Route::get('proposed-to-user', [SwapController::class, 'swapsProposedToUser'])->middleware('can:is-not-admin');
-        Route::get('user-proposed', [SwapController::class, 'swapsUserIsProposing'])->middleware('can:is-not-admin');
-        Route::get('history', [SwapController::class, 'swapsHistory'])->middleware('can:is-not-admin');
+        Route::post('', [SwapController::class, 'store'])->middleware('can:is-nurse');
+        Route::get('proposed-to-user', [SwapController::class, 'swapsProposedToUser'])->middleware('can:is-nurse');
+        Route::get('user-proposed', [SwapController::class, 'swapsUserIsProposing'])->middleware('can:is-nurse');
+        Route::get('history', [SwapController::class, 'swapsHistory'])->middleware('can:is-nurse');
         Route::group(['prefix' => '{swap}'], function (){
-            Route::patch('approve', [SwapController::class, 'approveSwap'])->middleware('can:is-not-admin');
-            Route::patch('reject', [SwapController::class, 'rejectSwap'])->middleware('can:is-not-admin');
+            Route::patch('approve', [SwapController::class, 'approveSwap'])->middleware('can:is-nurse');
+            Route::patch('reject', [SwapController::class, 'rejectSwap'])->middleware('can:is-nurse');
         });
     });
 });

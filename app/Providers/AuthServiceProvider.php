@@ -32,6 +32,10 @@ class AuthServiceProvider extends ServiceProvider
             return $user->type === UserType::ADMIN->value || ($user->type === UserType::LEAD->value && $user->service_id === $service->id);
         });
 
+        Gate::define('is-nurse', function($user){
+            return $user->type === UserType::NURSE->value;
+        });
+
         Gate::define('is-not-admin', function($user){
             return $user->type !== UserType::ADMIN->value;
         });
