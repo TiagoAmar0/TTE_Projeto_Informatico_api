@@ -60,6 +60,9 @@ class ShiftUserController extends Controller
                 $q->where('date', $date);
                 $q->where('date', ">=", Carbon::now()->startOfDay()->format('Y-m-d'));
             })
+            ->whereHas('user', function($q){
+                $q->whereNot('type', 'lead-nurse');
+            })
             ->whereNotIn('id', $user->swapsUserIsProposing()->pluck('payment_shift_user')->toArray())
             ->with(['user', 'shift'])
             ->get();
@@ -84,6 +87,7 @@ class ShiftUserController extends Controller
         $users_resting_in_date = User::query()
             ->where('service_id', Auth::user()->service->id)
             ->whereNot('id', Auth::id())
+            ->whereNot('type', 'lead-nurse')
             ->whereDoesntHave('shiftUsers', function($query) use ($shiftUser, $date){
                 $query->where('schedule_id', $shiftUser->schedule_id);
                 $query->where('date', $date);
@@ -95,6 +99,9 @@ class ShiftUserController extends Controller
         // Seleciona os dias em que os enfermeiros que folgam na data estão a trabalhar e o enfermeiro autenticado está de folga
         $shiftUsers = ShiftUser::query()
             ->whereIn('user_id', $users_resting_in_date)
+            ->whereHas('user', function($q){
+                $q->whereNot('type', 'lead-nurse');
+            })
             ->where('date', '>', Carbon::now()->startOfDay()->format('Y-m-d'))
             ->whereNotIn('date', ShiftUser::query()->where('user_id', Auth::id())->pluck('date'))
             ->whereNotIn('id', $user->swapsUserIsProposing()->pluck('payment_shift_user')->toArray())
@@ -117,8 +124,6 @@ class ShiftUserController extends Controller
                 'shift_name' => $su['shift']['description'],
                 'rest' => true
             ];
-
-//            $userIDs[$su['user_id']] =  $su['user']['name'];
         }
 
         $shiftUser->load([
